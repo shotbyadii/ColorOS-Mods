@@ -39,7 +39,9 @@ import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
@@ -54,6 +56,7 @@ import java.util.Locale;
  * 1. Dedicated ColorOS Background & Battery Diagnostics & Exemption dialog
  * 2. Real Telecom incoming call simulator (TestCallConnectionService) that triggers
  *    the actual Oppo Find X9 incoming call UI & video ringtone live.
+ * 3. Video Appearance & Legibility controls (top/bottom gradient & ambient blur card).
  */
 public class MainActivity extends Activity {
     private static final int REQ_PERMISSIONS = 1001;
@@ -93,6 +96,9 @@ public class MainActivity extends Activity {
     private LinearLayout permissionsCardContainer;
     private TextView fallbackRingtoneValueTv;
     private TextView activeSystemStateSubTv;
+    private Switch vignetteSwitch;
+    private TextView modeFillBtn;
+    private TextView modeAmbientBtn;
     private TextView contactsGroupHeaderCountTv;
     private LinearLayout mappingsCardContainer;
 
@@ -377,7 +383,85 @@ public class MainActivity extends Activity {
 
         root.addView(fallbackCard);
 
-        // Group 3: Contact Video Ringtones
+        // Group 3: Video Appearance & Legibility
+        root.addView(createGroupHeader("Video Appearance & Legibility", null));
+        LinearLayout appearanceCard = createGroupedCard();
+
+        // Row 1: Legibility Gradient (Darken Top & Bottom)
+        LinearLayout vigRow = new LinearLayout(this);
+        vigRow.setOrientation(LinearLayout.HORIZONTAL);
+        vigRow.setGravity(Gravity.CENTER_VERTICAL);
+        vigRow.setPadding(dp(16), dp(14), dp(16), dp(14));
+
+        LinearLayout vigTextCol = new LinearLayout(this);
+        vigTextCol.setOrientation(LinearLayout.VERTICAL);
+        TextView vigTitle = new TextView(this);
+        vigTitle.setText("Darken Top & Bottom (Legibility)");
+        vigTitle.setTextColor(couiLabelPrimary);
+        vigTitle.setTypeface(fontMedium());
+        vigTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        vigTextCol.addView(vigTitle);
+
+        TextView vigSub = new TextView(this);
+        vigSub.setText("Progressive gradient ensures caller ID & call sliders stay visible on bright videos");
+        vigSub.setTextColor(couiLabelSecondary);
+        vigSub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        vigSub.setPadding(0, dp(2), 0, 0);
+        vigTextCol.addView(vigSub);
+        vigRow.addView(vigTextCol, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        vignetteSwitch = new Switch(this);
+        vignetteSwitch.setOnCheckedChangeListener((btn, isChecked) -> {
+            ContactVideoResolver.ConfigData cfg = ContactVideoResolver.loadConfig(this);
+            cfg.globalVignetteEnabled = isChecked;
+            ContactVideoResolver.saveConfig(this, cfg);
+        });
+        vigRow.addView(vignetteSwitch);
+        appearanceCard.addView(vigRow);
+
+        appearanceCard.addView(createInsetDivider());
+
+        // Row 2: Aspect Ratio & Presentation Mode
+        LinearLayout modeRow = new LinearLayout(this);
+        modeRow.setOrientation(LinearLayout.VERTICAL);
+        modeRow.setPadding(dp(16), dp(14), dp(16), dp(14));
+
+        TextView modeTitle = new TextView(this);
+        modeTitle.setText("Video Presentation Mode");
+        modeTitle.setTextColor(couiLabelPrimary);
+        modeTitle.setTypeface(fontMedium());
+        modeTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        modeRow.addView(modeTitle);
+
+        TextView modeSub = new TextView(this);
+        modeSub.setText("Choose how videos are framed during incoming ringing calls");
+        modeSub.setTextColor(couiLabelSecondary);
+        modeSub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        modeSub.setPadding(0, dp(2), 0, dp(12));
+        modeRow.addView(modeSub);
+
+        LinearLayout modeBtns = new LinearLayout(this);
+        modeBtns.setOrientation(LinearLayout.HORIZONTAL);
+        modeBtns.setGravity(Gravity.CENTER_VERTICAL);
+
+        modeFillBtn = createCapsuleButton("Full Screen Fill", couiTheme, Color.WHITE, false, v -> {
+            setGlobalDisplayMode(VideoProcessor.MODE_FULL_SCREEN);
+        });
+        LinearLayout.LayoutParams fillLp = new LinearLayout.LayoutParams(0, dp(36), 1f);
+        fillLp.rightMargin = dp(8);
+        modeBtns.addView(modeFillBtn, fillLp);
+
+        modeAmbientBtn = createCapsuleButton("Ambient Blur Card", couiContainer8, couiLabelPrimary, false, v -> {
+            setGlobalDisplayMode(VideoProcessor.MODE_AMBIENT_CARD);
+        });
+        LinearLayout.LayoutParams ambLp = new LinearLayout.LayoutParams(0, dp(36), 1f);
+        modeBtns.addView(modeAmbientBtn, ambLp);
+
+        modeRow.addView(modeBtns);
+        appearanceCard.addView(modeRow);
+        root.addView(appearanceCard);
+
+        // Group 4: Contact Video Ringtones
         TextView testCallerLink = new TextView(this);
         testCallerLink.setText("Simulate Call (Live)");
         testCallerLink.setTextColor(couiTheme);
@@ -416,10 +500,42 @@ public class MainActivity extends Activity {
         setContentView(scroll);
     }
 
+    private void setGlobalDisplayMode(int mode) {
+        ContactVideoResolver.ConfigData cfg = ContactVideoResolver.loadConfig(this);
+        cfg.globalDisplayMode = mode;
+        ContactVideoResolver.saveConfig(this, cfg);
+        updateDisplayModeButtons(mode);
+    }
+
+    private void updateDisplayModeButtons(int mode) {
+        if (mode == VideoProcessor.MODE_FULL_SCREEN) {
+            modeFillBtn.setBackground(rippleSquircle(couiTheme, 999));
+            modeFillBtn.setTextColor(Color.WHITE);
+            modeAmbientBtn.setBackground(rippleSquircle(couiContainer8, 999));
+            modeAmbientBtn.setTextColor(couiLabelPrimary);
+        } else {
+            modeFillBtn.setBackground(rippleSquircle(couiContainer8, 999));
+            modeFillBtn.setTextColor(couiLabelPrimary);
+            modeAmbientBtn.setBackground(rippleSquircle(couiTheme, 999));
+            modeAmbientBtn.setTextColor(Color.WHITE);
+        }
+    }
+
+    private void refreshAppearanceCard() {
+        ContactVideoResolver.ConfigData cfg = ContactVideoResolver.loadConfig(this);
+        if (vignetteSwitch != null) {
+            vignetteSwitch.setChecked(cfg.globalVignetteEnabled);
+        }
+        if (modeFillBtn != null && modeAmbientBtn != null) {
+            updateDisplayModeButtons(cfg.globalDisplayMode);
+        }
+    }
+
     private void refreshAll() {
         ContactVideoResolver.getVideoRingtonesDir();
         refreshPermissionsCard();
         refreshFallbackRingtoneCard();
+        refreshAppearanceCard();
         refreshMappingsCard();
     }
 
@@ -866,15 +982,34 @@ public class MainActivity extends Activity {
             subTv.setPadding(0, dp(2), 0, 0);
             infoCol.addView(subTv);
 
-            // Status indicator row (MediaStore Ready or Auto-indexed)
+            // Status indicator row with presentation & vignette tags
+            LinearLayout badgeRow = new LinearLayout(this);
+            badgeRow.setOrientation(LinearLayout.HORIZONTAL);
+            badgeRow.setGravity(Gravity.CENTER_VERTICAL);
+            badgeRow.setPadding(0, dp(4), 0, 0);
+
             boolean validInOplus = ContactVideoResolver.isOplusLocalVideoValid(this, m.videoUri);
             TextView statusTv = new TextView(this);
-            statusTv.setText(validInOplus ? "● Ready to ring" : "▲ Tap Preview to index");
+            statusTv.setText(validInOplus ? "● Ready" : "▲ Needs Index");
             statusTv.setTextColor(validInOplus ? couiSuccess : couiWarning);
             statusTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             statusTv.setTypeface(fontMedium());
-            statusTv.setPadding(0, dp(4), 0, 0);
-            infoCol.addView(statusTv);
+            badgeRow.addView(statusTv);
+
+            String modeText = (m.displayMode == VideoProcessor.MODE_AMBIENT_CARD) ? "Ambient Card" : "Full Screen";
+            TextView modeTag = createTagPill(modeText, couiThemeHalftone, couiTheme);
+            LinearLayout.LayoutParams mtLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            mtLp.leftMargin = dp(8);
+            badgeRow.addView(modeTag, mtLp);
+
+            if (m.vignetteEnabled) {
+                TextView vigTag = createTagPill("Vignette", couiContainer8, couiLabelSecondary);
+                LinearLayout.LayoutParams vtLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                vtLp.leftMargin = dp(4);
+                badgeRow.addView(vigTag, vtLp);
+            }
+
+            infoCol.addView(badgeRow);
 
             topRow.addView(infoCol, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
             cardItem.addView(topRow);
@@ -1078,6 +1213,99 @@ public class MainActivity extends Activity {
         note.setPadding(dp(8), dp(14), dp(8), dp(16));
         card.addView(note);
 
+        // Visual Styling Controls for this Video
+        LinearLayout styleBox = new LinearLayout(this);
+        styleBox.setOrientation(LinearLayout.VERTICAL);
+        styleBox.setPadding(dp(12), dp(10), dp(12), dp(10));
+        styleBox.setBackground(squircleBg(couiContainer8, 14));
+        LinearLayout.LayoutParams sbLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        sbLp.topMargin = dp(8);
+        sbLp.bottomMargin = dp(12);
+        styleBox.setLayoutParams(sbLp);
+
+        TextView styleTitle = new TextView(this);
+        styleTitle.setText("Visual Presentation & Legibility");
+        styleTitle.setTextColor(couiLabelPrimary);
+        styleTitle.setTypeface(fontMedium());
+        styleTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        styleBox.addView(styleTitle);
+
+        // State holder for dialog
+        final boolean[] localVig = new boolean[]{ m.vignetteEnabled };
+        final int[] localMode = new int[]{ m.displayMode };
+
+        LinearLayout optRow = new LinearLayout(this);
+        optRow.setOrientation(LinearLayout.HORIZONTAL);
+        optRow.setGravity(Gravity.CENTER_VERTICAL);
+        optRow.setPadding(0, dp(8), 0, dp(8));
+
+        TextView vigBtn = createCapsuleButton(
+                localVig[0] ? "Gradient ON" : "Gradient OFF",
+                localVig[0] ? couiThemeHalftone : couiCard,
+                localVig[0] ? couiTheme : couiLabelSecondary,
+                false, null);
+        vigBtn.setOnClickListener(v -> {
+            localVig[0] = !localVig[0];
+            vigBtn.setText(localVig[0] ? "Gradient ON" : "Gradient OFF");
+            vigBtn.setBackground(rippleSquircle(localVig[0] ? couiThemeHalftone : couiCard, 999));
+            vigBtn.setTextColor(localVig[0] ? couiTheme : couiLabelSecondary);
+        });
+        LinearLayout.LayoutParams vbLp = new LinearLayout.LayoutParams(0, dp(32), 1f);
+        vbLp.rightMargin = dp(6);
+        optRow.addView(vigBtn, vbLp);
+
+        TextView modeBtn = createCapsuleButton(
+                localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? "Ambient Card" : "Full Fill",
+                localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiThemeHalftone : couiCard,
+                localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiTheme : couiLabelSecondary,
+                false, null);
+        modeBtn.setOnClickListener(v -> {
+            localMode[0] = (localMode[0] == VideoProcessor.MODE_AMBIENT_CARD) ? VideoProcessor.MODE_FULL_SCREEN : VideoProcessor.MODE_AMBIENT_CARD;
+            modeBtn.setText(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? "Ambient Card" : "Full Fill");
+            modeBtn.setBackground(rippleSquircle(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiThemeHalftone : couiCard, 999));
+            modeBtn.setTextColor(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiTheme : couiLabelSecondary);
+        });
+        LinearLayout.LayoutParams mbLp = new LinearLayout.LayoutParams(0, dp(32), 1f);
+        optRow.addView(modeBtn, mbLp);
+        styleBox.addView(optRow);
+
+        TextView reprocessBtn = createCapsuleButton("Apply Style & Enhance", couiTheme, Color.WHITE, false, v -> {
+            vv.stopPlayback();
+            Dialog procD = showProcessingModalDialog("Enhancing Video...");
+            new Thread(() -> {
+                try {
+                    VideoProcessor.ProcessingOptions opts = new VideoProcessor.ProcessingOptions();
+                    opts.enableVignette = localVig[0];
+                    opts.displayMode = localMode[0];
+
+                    ContactVideoResolver.reprocessVideoMapping(
+                            MainActivity.this,
+                            m,
+                            opts,
+                            pct -> runOnUiThread(() -> updateProcessingModalDialog(procD, pct)));
+
+                    runOnUiThread(() -> {
+                        procD.dismiss();
+                        Toast.makeText(MainActivity.this, "Visual styling applied!", Toast.LENGTH_SHORT).show();
+                        if (!TextUtils.isEmpty(m.videoUri)) {
+                            vv.setVideoURI(Uri.parse(m.videoUri));
+                        } else {
+                            vv.setVideoPath(m.videoPath);
+                        }
+                        vv.start();
+                        refreshAll();
+                    });
+                } catch (Exception ex) {
+                    runOnUiThread(() -> {
+                        procD.dismiss();
+                        Toast.makeText(MainActivity.this, "Failed to enhance video: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+                    });
+                }
+            }).start();
+        });
+        styleBox.addView(reprocessBtn, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(34)));
+        card.addView(styleBox);
+
         // Buttons: "Ring Phone Now" (Real Call) + "Done"
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -1105,6 +1333,63 @@ public class MainActivity extends Activity {
         dialog.show();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setLayout(dp(328), ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+    }
+
+    private Dialog showProcessingModalDialog(String titleText) {
+        Dialog d = new Dialog(this);
+        d.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        d.setCancelable(false);
+        if (d.getWindow() != null) {
+            d.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+        LinearLayout c = new LinearLayout(this);
+        c.setOrientation(LinearLayout.VERTICAL);
+        c.setGravity(Gravity.CENTER);
+        c.setPadding(dp(24), dp(24), dp(24), dp(24));
+        c.setBackground(squircleBg(couiCardElevated, 24));
+
+        TextView tv = new TextView(this);
+        tv.setText(titleText);
+        tv.setTextColor(couiLabelPrimary);
+        tv.setTypeface(fontSemibold());
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        tv.setGravity(Gravity.CENTER);
+        c.addView(tv);
+
+        TextView pctTv = new TextView(this);
+        pctTv.setText("Applying hardware video filters... 0%");
+        pctTv.setTextColor(couiLabelSecondary);
+        pctTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        pctTv.setGravity(Gravity.CENTER);
+        pctTv.setPadding(0, dp(8), 0, dp(14));
+        pctTv.setTag("progress_text");
+        c.addView(pctTv);
+
+        ProgressBar pb = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        pb.setIndeterminate(false);
+        pb.setMax(100);
+        pb.setProgress(0);
+        pb.setTag("progress_bar");
+        c.addView(pb, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(12)));
+
+        d.setContentView(c);
+        d.show();
+        if (d.getWindow() != null) {
+            d.getWindow().setLayout(dp(300), ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+        return d;
+    }
+
+    private void updateProcessingModalDialog(Dialog d, int pct) {
+        if (d == null || !d.isShowing()) return;
+        View pb = d.findViewById(android.R.id.content).findViewWithTag("progress_bar");
+        if (pb instanceof ProgressBar) {
+            ((ProgressBar) pb).setProgress(pct);
+        }
+        View pt = d.findViewById(android.R.id.content).findViewWithTag("progress_text");
+        if (pt instanceof TextView) {
+            ((TextView) pt).setText("Applying hardware video filters... " + pct + "%");
         }
     }
 
@@ -1233,18 +1518,42 @@ public class MainActivity extends Activity {
         } else if (requestCode == REQ_PICK_VIDEO && resultCode == RESULT_OK && data != null) {
             Uri videoUri = data.getData();
             if (videoUri != null) {
-                try {
-                    ContactVideoResolver.ContactMapping m = ContactVideoResolver.importAndAssignVideo(
-                            this,
-                            pendingContactId,
-                            pendingLookupKey,
-                            pendingDisplayName,
-                            pendingPhoneNumber,
-                            videoUri);
-                    Toast.makeText(this, "Assigned video to " + m.displayName, Toast.LENGTH_SHORT).show();
-                } catch (Exception e) {
-                    Toast.makeText(this, "Failed to assign video: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                }
+                final String contactId = pendingContactId;
+                final String lookupKey = pendingLookupKey;
+                final String displayName = pendingDisplayName;
+                final String phoneNumber = pendingPhoneNumber;
+                Dialog progressDialog = showProcessingModalDialog("Enhancing Video for ColorOS...");
+                new Thread(() -> {
+                    try {
+                        ContactVideoResolver.ConfigData cfg = ContactVideoResolver.loadConfig(this);
+                        VideoProcessor.ProcessingOptions opts = new VideoProcessor.ProcessingOptions();
+                        opts.enableVignette = cfg.globalVignetteEnabled;
+                        opts.displayMode = cfg.globalDisplayMode;
+
+                        ContactVideoResolver.ContactMapping m = ContactVideoResolver.importAndAssignVideo(
+                                this,
+                                contactId,
+                                lookupKey,
+                                displayName,
+                                phoneNumber,
+                                videoUri,
+                                opts,
+                                pct -> runOnUiThread(() -> updateProcessingModalDialog(progressDialog, pct)));
+
+                        runOnUiThread(() -> {
+                            progressDialog.dismiss();
+                            Toast.makeText(this, "Assigned video to " + m.displayName, Toast.LENGTH_SHORT).show();
+                            refreshAll();
+                        });
+                    } catch (Exception e) {
+                        runOnUiThread(() -> {
+                            progressDialog.dismiss();
+                            Toast.makeText(this, "Failed to assign video: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            refreshAll();
+                        });
+                    }
+                }).start();
+                return;
             }
         }
         refreshAll();

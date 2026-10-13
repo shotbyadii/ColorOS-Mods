@@ -22,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -46,6 +47,9 @@ public class ContactVideoResolver {
         public String normalizedNumber = "";
         public String videoUri = "";
         public String videoPath = "";
+        public String originalVideoPath = "";
+        public boolean vignetteEnabled = true;
+        public int displayMode = VideoProcessor.MODE_FULL_SCREEN;
         public String savedCustomRingtone = "";
         public boolean fromFolderAuto = false;
 
@@ -58,6 +62,9 @@ public class ContactVideoResolver {
             o.put("normalizedNumber", normalizedNumber);
             o.put("videoUri", videoUri);
             o.put("videoPath", videoPath);
+            o.put("originalVideoPath", originalVideoPath);
+            o.put("vignetteEnabled", vignetteEnabled);
+            o.put("displayMode", displayMode);
             o.put("savedCustomRingtone", savedCustomRingtone);
             return o;
         }
@@ -71,6 +78,9 @@ public class ContactVideoResolver {
             m.normalizedNumber = o.optString("normalizedNumber", normalizeNumber(m.phoneNumber));
             m.videoUri = o.optString("videoUri", "");
             m.videoPath = o.optString("videoPath", "");
+            m.originalVideoPath = o.optString("originalVideoPath", "");
+            m.vignetteEnabled = o.optBoolean("vignetteEnabled", true);
+            m.displayMode = o.optInt("displayMode", VideoProcessor.MODE_FULL_SCREEN);
             m.savedCustomRingtone = o.optString("savedCustomRingtone", "");
             return m;
         }
@@ -81,6 +91,8 @@ public class ContactVideoResolver {
         public String defaultRingtoneSim2 = "";
         public String lastRestoredContactId = "";
         public String lastRestoredCustomRingtone = "";
+        public boolean globalVignetteEnabled = true;
+        public int globalDisplayMode = VideoProcessor.MODE_FULL_SCREEN;
         public List<ContactMapping> mappings = new ArrayList<>();
     }
 
@@ -166,6 +178,8 @@ public class ContactVideoResolver {
                 data.defaultRingtoneSim2 = root.optString("defaultRingtoneSim2", "");
                 data.lastRestoredContactId = root.optString("lastRestoredContactId", "");
                 data.lastRestoredCustomRingtone = root.optString("lastRestoredCustomRingtone", "");
+                data.globalVignetteEnabled = root.optBoolean("globalVignetteEnabled", true);
+                data.globalDisplayMode = root.optInt("globalDisplayMode", VideoProcessor.MODE_FULL_SCREEN);
                 JSONArray arr = root.optJSONArray("mappings");
                 if (arr != null) {
                     for (int i = 0; i < arr.length(); i++) {
@@ -204,6 +218,8 @@ public class ContactVideoResolver {
             root.put("defaultRingtoneSim2", data.defaultRingtoneSim2 == null ? "" : data.defaultRingtoneSim2);
             root.put("lastRestoredContactId", data.lastRestoredContactId == null ? "" : data.lastRestoredContactId);
             root.put("lastRestoredCustomRingtone", data.lastRestoredCustomRingtone == null ? "" : data.lastRestoredCustomRingtone);
+            root.put("globalVignetteEnabled", data.globalVignetteEnabled);
+            root.put("globalDisplayMode", data.globalDisplayMode);
             JSONArray arr = new JSONArray();
             for (ContactMapping m : data.mappings) {
                 if (!m.fromFolderAuto) {
@@ -398,8 +414,7 @@ public class ContactVideoResolver {
     }
 
     /**
-     * Copies a picked video URI into /sdcard/Ringtones/VideoRingtones/ and indexes it in MediaStore
-     * so Phone.apk always has direct external_primary access.
+     * Overload for importAndAssignVideo using global/default options.
      */
     public static ContactMapping importAndAssignVideo(
             Context context,
@@ -408,6 +423,26 @@ public class ContactVideoResolver {
             String displayName,
             String phoneNumber,
             Uri sourceVideoUri) throws Exception {
+        ConfigData cfg = loadConfig(context);
+        VideoProcessor.ProcessingOptions opts = new VideoProcessor.ProcessingOptions();
+        opts.enableVignette = cfg.globalVignetteEnabled;
+        opts.displayMode = cfg.globalDisplayMode;
+        return importAndAssignVideo(context, contactId, lookupKey, displayName, phoneNumber, sourceVideoUri, opts, null);
+    }
+
+    /**
+     * Copies a picked video URI, processes it with VideoProcessor for legibility & aspect ratio styling,
+     * and indexes it in MediaStore so Phone.apk always has direct external_primary access.
+     */
+    public static ContactMapping importAndAssignVideo(
+            Context context,
+            String contactId,
+            String lookupKey,
+            String displayName,
+            String phoneNumber,
+            Uri sourceVideoUri,
+            VideoProcessor.ProcessingOptions options,
+            VideoProcessor.IntConsumer progressListener) throws Exception {
 
         File dir = getVideoRingtonesDir();
         String safeName = (displayName != null && !displayName.trim().isEmpty() ? displayName.trim() : "Contact")
@@ -415,9 +450,11 @@ public class ContactVideoResolver {
         String normNum = normalizeNumber(phoneNumber);
         String fileName = safeName + (normNum.isEmpty() ? "" : ("_" + normNum)) + ".mp4";
         File destFile = new File(dir, fileName);
+        File rawFile = new File(dir, ".raw_" + fileName);
 
+        // 1. Copy source stream to raw backup file
         try (InputStream in = context.getContentResolver().openInputStream(sourceVideoUri);
-             OutputStream out = new FileOutputStream(destFile)) {
+             OutputStream out = new FileOutputStream(rawFile)) {
             if (in == null) {
                 throw new IllegalArgumentException("Cannot open input stream for selected video");
             }
@@ -427,6 +464,21 @@ public class ContactVideoResolver {
                 out.write(buf, 0, r);
             }
             out.flush();
+        }
+
+        // 2. Hardware transcode with VideoProcessor if options provided
+        boolean procSuccess = false;
+        if (options != null) {
+            try {
+                VideoProcessor.processVideoSync(context, Uri.fromFile(rawFile), destFile, options, progressListener);
+                procSuccess = true;
+            } catch (Exception e) {
+                Log.w(TAG, "Hardware VideoProcessor failed; falling back to direct copy", e);
+            }
+        }
+
+        if (!procSuccess) {
+            copyFile(rawFile, destFile);
         }
 
         String mediaUri = resolveToExternalPrimaryVideoUri(context, destFile, sourceVideoUri);
@@ -451,11 +503,74 @@ public class ContactVideoResolver {
         target.phoneNumber = phoneNumber != null ? phoneNumber : "";
         target.normalizedNumber = normNum;
         target.videoPath = destFile.getAbsolutePath();
+        target.originalVideoPath = rawFile.getAbsolutePath();
+        target.vignetteEnabled = (options != null) ? options.enableVignette : true;
+        target.displayMode = (options != null) ? options.displayMode : VideoProcessor.MODE_FULL_SCREEN;
         target.videoUri = mediaUri;
         target.fromFolderAuto = false;
 
         saveConfig(context, config);
         return target;
+    }
+
+    /**
+     * Re-processes an existing contact's video ringtone with updated visual styling (e.g. toggling vignette or ambient blur mode).
+     */
+    public static ContactMapping reprocessVideoMapping(
+            Context context,
+            ContactMapping target,
+            VideoProcessor.ProcessingOptions options,
+            VideoProcessor.IntConsumer progressListener) throws Exception {
+
+        File dir = getVideoRingtonesDir();
+        File sourceFile = null;
+        if (!TextUtils.isEmpty(target.originalVideoPath) && new File(target.originalVideoPath).exists()) {
+            sourceFile = new File(target.originalVideoPath);
+        } else if (!TextUtils.isEmpty(target.videoPath) && new File(target.videoPath).exists()) {
+            sourceFile = new File(target.videoPath);
+        }
+
+        if (sourceFile == null || !sourceFile.exists()) {
+            throw new IOException("Source video file not found for reprocessing");
+        }
+
+        File tempOutput = new File(dir, "temp_proc_" + System.currentTimeMillis() + ".mp4");
+        VideoProcessor.processVideoSync(context, Uri.fromFile(sourceFile), tempOutput, options, progressListener);
+
+        File finalDest = new File(target.videoPath);
+        if (finalDest.exists()) {
+            finalDest.delete();
+        }
+        if (!tempOutput.renameTo(finalDest)) {
+            copyFile(tempOutput, finalDest);
+            tempOutput.delete();
+        }
+
+        String mediaUri = resolveToExternalPrimaryVideoUri(context, finalDest, null);
+        target.videoUri = mediaUri;
+        target.vignetteEnabled = options.enableVignette;
+        target.displayMode = options.displayMode;
+
+        ConfigData config = loadConfig(context);
+        for (int i = 0; i < config.mappings.size(); i++) {
+            if (config.mappings.get(i).contactId.equals(target.contactId)) {
+                config.mappings.set(i, target);
+                break;
+            }
+        }
+        saveConfig(context, config);
+        return target;
+    }
+
+    private static void copyFile(File src, File dst) throws IOException {
+        try (InputStream in = new FileInputStream(src); OutputStream out = new FileOutputStream(dst)) {
+            byte[] buf = new byte[65536];
+            int r;
+            while ((r = in.read(buf)) != -1) {
+                out.write(buf, 0, r);
+            }
+            out.flush();
+        }
     }
 
     /**

@@ -450,9 +450,14 @@ public class ContactVideoResolver {
         String normNum = normalizeNumber(phoneNumber);
         String fileName = safeName + (normNum.isEmpty() ? "" : ("_" + normNum)) + ".mp4";
         File destFile = new File(dir, fileName);
-        File rawFile = new File(dir, ".raw_" + fileName);
 
-        // 1. Copy source stream to raw backup file
+        File masterDir = new File(context.getFilesDir(), "master_videos");
+        if (!masterDir.exists()) {
+            masterDir.mkdirs();
+        }
+        File rawFile = new File(masterDir, "master_" + fileName);
+
+        // 1. Copy source stream to master backup file in private storage
         try (InputStream in = context.getContentResolver().openInputStream(sourceVideoUri);
              OutputStream out = new FileOutputStream(rawFile)) {
             if (in == null) {
@@ -528,6 +533,14 @@ public class ContactVideoResolver {
             sourceFile = new File(target.originalVideoPath);
         } else if (!TextUtils.isEmpty(target.videoPath) && new File(target.videoPath).exists()) {
             sourceFile = new File(target.videoPath);
+            try {
+                File masterDir = new File(context.getFilesDir(), "master_videos");
+                if (!masterDir.exists()) masterDir.mkdirs();
+                File masterF = new File(masterDir, "master_" + sourceFile.getName());
+                copyFile(sourceFile, masterF);
+                target.originalVideoPath = masterF.getAbsolutePath();
+            } catch (Exception ignored) {
+            }
         }
 
         if (sourceFile == null || !sourceFile.exists()) {
@@ -587,6 +600,9 @@ public class ContactVideoResolver {
             for (File f : files) {
                 if (!f.isFile()) continue;
                 String name = f.getName();
+                if (name.startsWith(".") || name.startsWith("temp_") || name.startsWith("master_") || name.startsWith(".raw_")) {
+                    continue;
+                }
                 String lower = name.toLowerCase(Locale.ROOT);
                 boolean isVideo = false;
                 String baseName = name;

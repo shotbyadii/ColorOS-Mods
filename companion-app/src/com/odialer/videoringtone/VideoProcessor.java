@@ -159,17 +159,26 @@ public class VideoProcessor {
         int rotation = 0;
         if (inputVideoFormat.containsKey(MediaFormat.KEY_ROTATION)) {
             rotation = inputVideoFormat.getInteger(MediaFormat.KEY_ROTATION);
-        } else {
-            try {
-                MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-                mmr.setDataSource(context, inputUri);
-                String rotStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
-                if (rotStr != null) {
-                    rotation = Integer.parseInt(rotStr);
-                }
-                mmr.release();
-            } catch (Throwable ignored) {
+        }
+        try {
+            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+            mmr.setDataSource(context, inputUri);
+            String rotStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+            if (rotStr != null) {
+                rotation = Integer.parseInt(rotStr);
             }
+            String wStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
+            if (wStr != null) {
+                int w = Integer.parseInt(wStr);
+                if (w > 0) inWidth = w;
+            }
+            String hStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
+            if (hStr != null) {
+                int h = Integer.parseInt(hStr);
+                if (h > 0) inHeight = h;
+            }
+            mmr.release();
+        } catch (Throwable ignored) {
         }
 
         long totalDurationUs = 0;
@@ -554,13 +563,13 @@ public class VideoProcessor {
                     "        float dist = roundedBoxSDF(vPos, cardHalf, cornerR, aspect);\n" +
                     "\n" +
                     "        // Background: zoomed ambient blurred backlight\n" +
-                    "        vec2 bgCoord = (vTextureCoord - 0.5) * 0.88 + 0.5;\n" +
+                    "        vec2 bgCoord = (vTextureCoord - 0.5) * 0.85 + 0.5;\n" +
                     "        vec4 ambientBg = sampleBlurred(bgCoord);\n" +
-                    "        ambientBg.rgb *= 0.58; // Elegant dimming for backlight glow\n" +
+                    "        ambientBg.rgb *= 0.65; // Soft warm ambient backlight\n" +
                     "\n" +
-                    "        // Soft drop-shadow behind card\n" +
-                    "        float shadowAlpha = clamp(1.0 - smoothstep(0.0, 0.06, dist), 0.0, 1.0) * 0.45;\n" +
-                    "        vec4 compBg = mix(ambientBg, vec4(0.0, 0.0, 0.0, 1.0), shadowAlpha);\n" +
+                    "        // Soft, diffused ambient depth (no harsh black border)\n" +
+                    "        float shadowMask = clamp(1.0 - smoothstep(0.0, 0.08, dist), 0.0, 1.0);\n" +
+                    "        vec4 compBg = mix(ambientBg, ambientBg * 0.58, shadowMask * 0.40);\n" +
                     "\n" +
                     "        // Card content: map vPos within card boundaries\n" +
                     "        vec2 rawCardUv = (vPos + cardHalf) / (cardHalf * 2.0);\n" +
@@ -568,9 +577,13 @@ public class VideoProcessor {
                     "        vec2 stCardUv = (uSTMatrix * vec4(rawCardUv, 0.0, 1.0)).xy;\n" +
                     "        vec4 cardContent = texture2D(sTexture, stCardUv);\n" +
                     "\n" +
-                    "        // Antialiased card edge\n" +
-                    "        float cardAlpha = clamp(1.0 - smoothstep(-0.005, 0.003, dist), 0.0, 1.0);\n" +
+                    "        // Anti-aliased card edge\n" +
+                    "        float cardAlpha = clamp(1.0 - smoothstep(-0.003, 0.002, dist), 0.0, 1.0);\n" +
                     "        baseColor = mix(compBg, cardContent, cardAlpha);\n" +
+                    "\n" +
+                    "        // Subtle luxury rim highlight on the card squircle border\n" +
+                    "        float rimLight = smoothstep(0.0035, 0.0, abs(dist)) * 0.12;\n" +
+                    "        baseColor.rgb += vec3(rimLight);\n" +
                     "    } else {\n" +
                     "        // FULL SCREEN FILL MODE (Center-Crop)\n" +
                     "        baseColor = texture2D(sTexture, vTextureCoord);\n" +
@@ -668,16 +681,29 @@ public class VideoProcessor {
             GLES20.glUniform1f(muVignetteTopHandle, mOptions.vignetteTopStrength);
             GLES20.glUniform1f(muVignetteBottomHandle, mOptions.vignetteBottomStrength);
 
-            // Card Geometry: calculate halfW, halfH based on source aspect ratio
+            // Card Geometry: calculate halfW, halfH preserving exact pixel aspect ratio
             float targetAspect = (float) mTargetWidth / (float) mTargetHeight; // 9:16 = 0.5625
-            float cardHalfW = mOptions.cardWidthRatio; // e.g. 0.88 in clip space
-            // Calculate card half-height respecting video aspect ratio in screen space
-            // In clip space: x is [-1, 1], y is [-1, 1].
-            // Aspect ratio in pixels: (halfW * targetWidth) / (halfH * targetHeight) = mSrcAspect
-            // => halfH = (halfW * targetAspect) / mSrcAspect
-            float cardHalfH = (cardHalfW * targetAspect) / Math.max(0.1f, mSrcAspect);
-            // Cap height so it fits nicely on screen
-            cardHalfH = Math.min(cardHalfH, 0.58f);
+            float aspectScale = Math.max(0.01f, mSrcAspect) / targetAspect;
+
+            float cardHalfW;
+            float cardHalfH;
+            if (aspectScale <= 1.0f) {
+                // Portrait video (e.g. 9:16 aspectScale == 1.0)
+                cardHalfH = 0.54f;
+                cardHalfW = cardHalfH * aspectScale;
+                if (cardHalfW > 0.85f) {
+                    cardHalfW = 0.85f;
+                    cardHalfH = cardHalfW / aspectScale;
+                }
+            } else {
+                // Square or Landscape video (aspectScale > 1.0)
+                cardHalfW = 0.84f;
+                cardHalfH = cardHalfW / aspectScale;
+                if (cardHalfH > 0.54f) {
+                    cardHalfH = 0.54f;
+                    cardHalfW = cardHalfH * aspectScale;
+                }
+            }
 
             GLES20.glUniform4f(muCardParamsHandle, cardHalfW, cardHalfH, mOptions.cardCornerRadius, targetAspect);
 

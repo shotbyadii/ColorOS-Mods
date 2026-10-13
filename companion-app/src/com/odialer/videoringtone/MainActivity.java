@@ -873,53 +873,38 @@ public class MainActivity extends Activity {
             nameTv.setEllipsize(TextUtils.TruncateAt.END);
             infoCol.addView(nameTv);
 
-            String fileName = m.videoPath != null ? new File(m.videoPath).getName() : "video.mp4";
             String subLine = !TextUtils.isEmpty(m.phoneNumber)
-                    ? (m.phoneNumber + "  ·  " + fileName)
-                    : fileName;
+                    ? m.phoneNumber
+                    : (m.videoPath != null ? new File(m.videoPath).getName() : "Video Ringtone");
             TextView subTv = new TextView(this);
             subTv.setText(subLine);
             subTv.setTextColor(couiLabelSecondary);
             subTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
             subTv.setSingleLine(true);
-            subTv.setEllipsize(TextUtils.TruncateAt.MIDDLE);
+            subTv.setEllipsize(TextUtils.TruncateAt.END);
             subTv.setPadding(0, dp(2), 0, 0);
             infoCol.addView(subTv);
 
-            // Status indicator row with presentation & vignette tags
+            // Clean single status/mode pill row
             LinearLayout badgeRow = new LinearLayout(this);
             badgeRow.setOrientation(LinearLayout.HORIZONTAL);
             badgeRow.setGravity(Gravity.CENTER_VERTICAL);
-            badgeRow.setPadding(0, dp(4), 0, 0);
+            badgeRow.setPadding(0, dp(6), 0, 0);
 
             boolean validInOplus = ContactVideoResolver.isOplusLocalVideoValid(this, m.videoUri);
-            TextView statusTv = new TextView(this);
-            statusTv.setText(validInOplus ? "● Ready" : "▲ Needs Index");
-            statusTv.setTextColor(validInOplus ? couiSuccess : couiWarning);
-            statusTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-            statusTv.setTypeface(fontMedium());
-            badgeRow.addView(statusTv);
-
-            String modeText = (m.displayMode == VideoProcessor.MODE_AMBIENT_CARD) ? "Ambient Card" : "Full Screen";
-            TextView modeTag = createTagPill(modeText, couiThemeHalftone, couiTheme);
-            LinearLayout.LayoutParams mtLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            mtLp.leftMargin = dp(8);
-            badgeRow.addView(modeTag, mtLp);
-
-            if (m.vignetteEnabled) {
-                TextView vigTag = createTagPill("Vignette", couiContainer8, couiLabelSecondary);
-                LinearLayout.LayoutParams vtLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                vtLp.leftMargin = dp(4);
-                badgeRow.addView(vigTag, vtLp);
+            if (!validInOplus) {
+                TextView warnTag = createTagPill("▲ Needs Indexing", couiWarningHalftone, couiWarning);
+                badgeRow.addView(warnTag);
+            } else {
+                String modeLabel;
+                if (m.displayMode == VideoProcessor.MODE_AMBIENT_CARD) {
+                    modeLabel = m.contourGlowEnabled ? "Ambient Card · Glow" : "Ambient Card";
+                } else {
+                    modeLabel = "Full Screen";
+                }
+                TextView modeTag = createTagPill("● " + modeLabel, couiThemeHalftone, couiTheme);
+                badgeRow.addView(modeTag);
             }
-
-            if (m.displayMode == VideoProcessor.MODE_AMBIENT_CARD && m.contourGlowEnabled) {
-                TextView glowTag = createTagPill("Contour Glow", couiThemeHalftone, couiTheme);
-                LinearLayout.LayoutParams gtLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                gtLp.leftMargin = dp(4);
-                badgeRow.addView(glowTag, gtLp);
-            }
-
             infoCol.addView(badgeRow);
 
             topRow.addView(infoCol, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -1099,7 +1084,7 @@ public class MainActivity extends Activity {
                 outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp(16));
             }
         });
-        LinearLayout.LayoutParams vcLp = new LinearLayout.LayoutParams(dp(240), dp(360));
+        LinearLayout.LayoutParams vcLp = new LinearLayout.LayoutParams(dp(180), dp(270));
         videoContainer.setLayoutParams(vcLp);
 
         VideoView vv = new VideoView(this);
@@ -1127,80 +1112,188 @@ public class MainActivity extends Activity {
         // Visual Styling Controls for this Video
         LinearLayout styleBox = new LinearLayout(this);
         styleBox.setOrientation(LinearLayout.VERTICAL);
-        styleBox.setPadding(dp(12), dp(10), dp(12), dp(10));
-        styleBox.setBackground(squircleWithContour(couiContainer8, couiCardStroke, 1, 14));
+        styleBox.setPadding(dp(14), dp(12), dp(14), dp(14));
+        styleBox.setBackground(squircleWithContour(couiCardElevated, couiCardStroke, 1, 16));
         LinearLayout.LayoutParams sbLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         sbLp.topMargin = dp(8);
-        sbLp.bottomMargin = dp(12);
+        sbLp.bottomMargin = dp(14);
         styleBox.setLayoutParams(sbLp);
 
         TextView styleTitle = new TextView(this);
-        styleTitle.setText("Textured Visual Effects (ColorOS 16)");
+        styleTitle.setText("Display Style & Visual Effects");
         styleTitle.setTextColor(couiLabelPrimary);
-        styleTitle.setTypeface(fontMedium());
-        styleTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        styleTitle.setTypeface(fontSemibold());
+        styleTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         styleBox.addView(styleTitle);
+
+        TextView styleSub = new TextView(this);
+        styleSub.setText("ColorOS 16 Textured Effects · Per-Contact");
+        styleSub.setTextColor(couiLabelTertiary);
+        styleSub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        styleSub.setPadding(0, dp(1), 0, dp(10));
+        styleBox.addView(styleSub);
 
         // State holder for dialog
         final boolean[] localVig = new boolean[]{ m.vignetteEnabled };
         final int[] localMode = new int[]{ m.displayMode };
         final boolean[] localContour = new boolean[]{ m.contourGlowEnabled };
 
-        LinearLayout optRow = new LinearLayout(this);
-        optRow.setOrientation(LinearLayout.HORIZONTAL);
-        optRow.setGravity(Gravity.CENTER_VERTICAL);
-        optRow.setPadding(0, dp(8), 0, dp(8));
+        // 1. Display Mode: Segmented 2-Tab Switch (Full Width 50%/50%)
+        LinearLayout modeSegment = new LinearLayout(this);
+        modeSegment.setOrientation(LinearLayout.HORIZONTAL);
+        modeSegment.setPadding(dp(3), dp(3), dp(3), dp(3));
+        modeSegment.setBackground(squircleBg(couiContainer8, 12));
+        LinearLayout.LayoutParams segLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(38));
+        segLp.bottomMargin = dp(10);
+        modeSegment.setLayoutParams(segLp);
 
-        TextView vigBtn = createCapsuleButton(
-                localVig[0] ? "Gradient ON" : "Gradient OFF",
-                localVig[0] ? couiThemeHalftone : couiCard,
-                localVig[0] ? couiTheme : couiLabelSecondary,
-                false, null);
-        vigBtn.setOnClickListener(v -> {
-            localVig[0] = !localVig[0];
-            vigBtn.setText(localVig[0] ? "Gradient ON" : "Gradient OFF");
-            vigBtn.setBackground(rippleSquircle(localVig[0] ? couiThemeHalftone : couiCard, 999));
-            vigBtn.setTextColor(localVig[0] ? couiTheme : couiLabelSecondary);
+        TextView tabAmbient = new TextView(this);
+        tabAmbient.setText("Ambient Card");
+        tabAmbient.setGravity(Gravity.CENTER);
+        tabAmbient.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        tabAmbient.setFocusable(true);
+        tabAmbient.setClickable(true);
+
+        TextView tabFull = new TextView(this);
+        tabFull.setText("Full Screen");
+        tabFull.setGravity(Gravity.CENTER);
+        tabFull.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        tabFull.setFocusable(true);
+        tabFull.setClickable(true);
+
+        modeSegment.addView(tabAmbient, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        modeSegment.addView(tabFull, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        styleBox.addView(modeSegment);
+
+        // 2. Effects Toggles Row
+        LinearLayout effectsRow = new LinearLayout(this);
+        effectsRow.setOrientation(LinearLayout.HORIZONTAL);
+        effectsRow.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams effLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(36));
+        effLp.bottomMargin = dp(8);
+        effectsRow.setLayoutParams(effLp);
+
+        TextView contourToggle = new TextView(this);
+        contourToggle.setGravity(Gravity.CENTER);
+        contourToggle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        contourToggle.setTypeface(fontMedium());
+        contourToggle.setFocusable(true);
+        contourToggle.setClickable(true);
+
+        TextView gradientToggle = new TextView(this);
+        gradientToggle.setGravity(Gravity.CENTER);
+        gradientToggle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        gradientToggle.setTypeface(fontMedium());
+        gradientToggle.setFocusable(true);
+        gradientToggle.setClickable(true);
+
+        effectsRow.addView(contourToggle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        effectsRow.addView(gradientToggle, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        styleBox.addView(effectsRow);
+
+        // Helper explanation text
+        TextView helperText = new TextView(this);
+        helperText.setTextColor(couiLabelSecondary);
+        helperText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
+        helperText.setGravity(Gravity.CENTER);
+        helperText.setPadding(dp(4), 0, dp(4), dp(10));
+        styleBox.addView(helperText);
+
+        Runnable updateUiState = new Runnable() {
+            @Override
+            public void run() {
+                boolean isAmbient = (localMode[0] == VideoProcessor.MODE_AMBIENT_CARD);
+                // Update Segmented Mode Tabs
+                if (isAmbient) {
+                    tabAmbient.setBackground(squircleWithContour(couiTheme, Color.TRANSPARENT, 0, 10));
+                    tabAmbient.setTextColor(Color.WHITE);
+                    tabAmbient.setTypeface(fontSemibold());
+
+                    tabFull.setBackground(null);
+                    tabFull.setTextColor(couiLabelSecondary);
+                    tabFull.setTypeface(fontMedium());
+                } else {
+                    tabFull.setBackground(squircleWithContour(couiTheme, Color.TRANSPARENT, 0, 10));
+                    tabFull.setTextColor(Color.WHITE);
+                    tabFull.setTypeface(fontSemibold());
+
+                    tabAmbient.setBackground(null);
+                    tabAmbient.setTextColor(couiLabelSecondary);
+                    tabAmbient.setTypeface(fontMedium());
+                }
+
+                // Update Effects Buttons
+                if (isAmbient) {
+                    contourToggle.setVisibility(View.VISIBLE);
+                    LinearLayout.LayoutParams ctLp = (LinearLayout.LayoutParams) contourToggle.getLayoutParams();
+                    ctLp.rightMargin = dp(6);
+                    contourToggle.setLayoutParams(ctLp);
+
+                    if (localContour[0]) {
+                        contourToggle.setText("✨ Contour Glow: ON");
+                        contourToggle.setBackground(squircleWithContour(couiTheme, Color.TRANSPARENT, 0, 10));
+                        contourToggle.setTextColor(Color.WHITE);
+                    } else {
+                        contourToggle.setText("Contour Glow: OFF");
+                        contourToggle.setBackground(squircleBg(couiContainer8, 10));
+                        contourToggle.setTextColor(couiLabelSecondary);
+                    }
+
+                    if (localVig[0]) {
+                        gradientToggle.setText("🌓 Call Gradient: ON");
+                        gradientToggle.setBackground(squircleWithContour(couiTheme, Color.TRANSPARENT, 0, 10));
+                        gradientToggle.setTextColor(Color.WHITE);
+                    } else {
+                        gradientToggle.setText("Call Gradient: OFF");
+                        gradientToggle.setBackground(squircleBg(couiContainer8, 10));
+                        gradientToggle.setTextColor(couiLabelSecondary);
+                    }
+
+                    helperText.setText("Floating card with dynamic ambient blur and edge lighting.");
+                } else {
+                    // Full Screen: hide contour glow since no card boundary exists
+                    contourToggle.setVisibility(View.GONE);
+                    LinearLayout.LayoutParams gtLp = (LinearLayout.LayoutParams) gradientToggle.getLayoutParams();
+                    gtLp.leftMargin = 0;
+                    gradientToggle.setLayoutParams(gtLp);
+
+                    if (localVig[0]) {
+                        gradientToggle.setText("🌓 Dark Gradient for Call Controls: ON");
+                        gradientToggle.setBackground(squircleWithContour(couiTheme, Color.TRANSPARENT, 0, 10));
+                        gradientToggle.setTextColor(Color.WHITE);
+                    } else {
+                        gradientToggle.setText("Dark Gradient for Call Controls: OFF");
+                        gradientToggle.setBackground(squircleBg(couiContainer8, 10));
+                        gradientToggle.setTextColor(couiLabelSecondary);
+                    }
+
+                    helperText.setText("Full edge-to-edge video fill with legibility gradients.");
+                }
+            }
+        };
+
+        tabAmbient.setOnClickListener(v -> {
+            localMode[0] = VideoProcessor.MODE_AMBIENT_CARD;
+            updateUiState.run();
         });
-        LinearLayout.LayoutParams vbLp = new LinearLayout.LayoutParams(0, dp(32), 1f);
-        vbLp.rightMargin = dp(4);
-        optRow.addView(vigBtn, vbLp);
-
-        TextView modeBtn = createCapsuleButton(
-                localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? "Ambient Card" : "Full Fill",
-                localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiThemeHalftone : couiCard,
-                localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiTheme : couiLabelSecondary,
-                false, null);
-
-        TextView contourBtn = createCapsuleButton(
-                localContour[0] ? "Contour ON" : "Contour OFF",
-                localContour[0] ? couiThemeHalftone : couiCard,
-                localContour[0] ? couiTheme : couiLabelSecondary,
-                false, null);
-        contourBtn.setVisibility(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? View.VISIBLE : View.GONE);
-        contourBtn.setOnClickListener(v -> {
+        tabFull.setOnClickListener(v -> {
+            localMode[0] = VideoProcessor.MODE_FULL_SCREEN;
+            updateUiState.run();
+        });
+        contourToggle.setOnClickListener(v -> {
             localContour[0] = !localContour[0];
-            contourBtn.setText(localContour[0] ? "Contour ON" : "Contour OFF");
-            contourBtn.setBackground(rippleSquircle(localContour[0] ? couiThemeHalftone : couiCard, 999));
-            contourBtn.setTextColor(localContour[0] ? couiTheme : couiLabelSecondary);
+            updateUiState.run();
+        });
+        gradientToggle.setOnClickListener(v -> {
+            localVig[0] = !localVig[0];
+            updateUiState.run();
         });
 
-        modeBtn.setOnClickListener(v -> {
-            localMode[0] = (localMode[0] == VideoProcessor.MODE_AMBIENT_CARD) ? VideoProcessor.MODE_FULL_SCREEN : VideoProcessor.MODE_AMBIENT_CARD;
-            modeBtn.setText(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? "Ambient Card" : "Full Fill");
-            modeBtn.setBackground(rippleSquircle(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiThemeHalftone : couiCard, 999));
-            modeBtn.setTextColor(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiTheme : couiLabelSecondary);
-            contourBtn.setVisibility(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? View.VISIBLE : View.GONE);
-        });
-        LinearLayout.LayoutParams mbLp = new LinearLayout.LayoutParams(0, dp(32), 1f);
-        optRow.addView(modeBtn, mbLp);
+        updateUiState.run();
 
-        LinearLayout.LayoutParams cbLp = new LinearLayout.LayoutParams(0, dp(32), 1f);
-        cbLp.leftMargin = dp(4);
-        optRow.addView(contourBtn, cbLp);
-        styleBox.addView(optRow);
-
-        TextView reprocessBtn = createCapsuleButton("Apply Style & Enhance", couiTheme, Color.WHITE, false, v -> {
+        TextView reprocessBtn = createCapsuleButton("Apply Style & Enhance", couiTheme, Color.WHITE, true, v -> {
             vv.stopPlayback();
             Dialog procD = showProcessingModalDialog("Enhancing Video...");
             new Thread(() -> {
@@ -1235,7 +1328,7 @@ public class MainActivity extends Activity {
                 }
             }).start();
         });
-        styleBox.addView(reprocessBtn, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(34)));
+        styleBox.addView(reprocessBtn, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42)));
         card.addView(styleBox);
 
         // Buttons: "Ring Phone Now" (Real Call) + "Done"
@@ -1252,7 +1345,7 @@ public class MainActivity extends Activity {
         b1Lp.rightMargin = dp(10);
         btnRow.addView(ringRealBtn, b1Lp);
 
-        TextView doneBtn = createCapsuleButton("Done", couiTheme, Color.WHITE, false, v -> {
+        TextView doneBtn = createCapsuleButton("Done", couiContainer8, couiLabelPrimary, false, v -> {
             vv.stopPlayback();
             dialog.dismiss();
         });
@@ -1261,10 +1354,17 @@ public class MainActivity extends Activity {
 
         card.addView(btnRow, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        dialog.setContentView(card);
+        ScrollView dialogScroll = new ScrollView(this);
+        dialogScroll.setFillViewport(true);
+        dialogScroll.setVerticalScrollBarEnabled(false);
+        dialogScroll.addView(card);
+
+        dialog.setContentView(dialogScroll);
         dialog.show();
         if (dialog.getWindow() != null) {
-            dialog.getWindow().setLayout(dp(328), ViewGroup.LayoutParams.WRAP_CONTENT);
+            int maxW = dp(360);
+            int screenW = (int) (getResources().getDisplayMetrics().widthPixels * 0.94f);
+            dialog.getWindow().setLayout(Math.min(maxW, screenW), ViewGroup.LayoutParams.WRAP_CONTENT);
         }
     }
 

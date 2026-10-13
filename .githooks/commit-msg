@@ -1,0 +1,2 @@
+#!/bin/sh
+python scripts/version.py commit-msg "$1"

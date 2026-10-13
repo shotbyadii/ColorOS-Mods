@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- ColorOS 16 Theme Blue Squircle Background (#0066FF) -->
+    <path
+        android:fillColor="#0066FF"
+        android:pathData="M24,6 L84,6 C93.94,6 102,14.06 102,24 L102,84 C102,93.94 93.94,102 84,102 L24,102 C14.06,102 6,93.94 6,84 L6,24 C6,14.06 14.06,6 24,6 Z" />
+    <!-- Subtle inner highlight ring -->
+    <path
+        android:fillColor="#26FFFFFF"
+        android:pathData="M30,28 L62,28 C67.52,28 72,32.48 72,38 L72,70 C72,75.52 67.52,80 62,80 L30,80 C24.48,80 20,75.52 20,70 L20,38 C20,32.48 24.48,28 30,28 Z" />
+    <!-- Video Camera Body -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,33 L58,33 C62.42,33 66,36.58 66,41 L66,67 C66,71.42 62.42,75 58,75 L32,75 C27.58,75 24,71.42 24,67 L24,41 C24,36.58 27.58,33 32,33 Z" />
+    <!-- Video Camera Lens Cone -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M70,46 L84,36 C86.2,34.5 89,36.1 89,38.8 L89,69.2 C89,71.9 86.2,73.5 84,72 L70,62 Z" />
+    <!-- Play / Ring Pulse inside Video Body -->
+    <path
+        android:fillColor="#0066FF"
+        android:pathData="M40,45 L54,54 L40,63 Z" />
+</vector>

@@ -1,5 +1,5 @@
 build/
 !build/release.keystore
-*.png
 *.xml
 *.log
+*.png

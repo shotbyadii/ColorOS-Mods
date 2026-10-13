@@ -1405,6 +1405,12 @@ public class MainActivity extends Activity {
                 f.delete();
             }
         }
+        if (!TextUtils.isEmpty(m.originalVideoPath)) {
+            File rawF = new File(m.originalVideoPath);
+            if (rawF.exists()) {
+                rawF.delete();
+            }
+        }
         refreshAll();
     }
 

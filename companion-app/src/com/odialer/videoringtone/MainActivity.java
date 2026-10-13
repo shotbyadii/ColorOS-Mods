@@ -91,6 +91,8 @@ public class MainActivity extends Activity {
     private int couiError;
     private int couiErrorHalftone;
     private int couiPressRipple;
+    private int couiCardStroke;
+    private int couiContourGlow;
 
     private TextView modeBadgeView;
     private LinearLayout permissionsCardContainer;
@@ -132,8 +134,10 @@ public class MainActivity extends Activity {
 
         if (isDark) {
             couiBgWithCard = Color.parseColor("#000000");
-            couiCard = Color.parseColor("#1F1F1F");
-            couiCardElevated = Color.parseColor("#2C2C2E");
+            couiCard = Color.parseColor("#1C1C1E");
+            couiCardElevated = Color.parseColor("#262629");
+            couiCardStroke = Color.parseColor("#24FFFFFF");
+            couiContourGlow = Color.parseColor("#44FFFFFF");
             couiLabelPrimary = Color.parseColor("#E5FFFFFF");
             couiLabelSecondary = Color.parseColor("#8AFFFFFF");
             couiLabelTertiary = Color.parseColor("#42FFFFFF");
@@ -144,6 +148,8 @@ public class MainActivity extends Activity {
             couiBgWithCard = Color.parseColor("#F0F1F2");
             couiCard = Color.parseColor("#FFFFFF");
             couiCardElevated = Color.parseColor("#FFFFFF");
+            couiCardStroke = Color.parseColor("#0F000000");
+            couiContourGlow = Color.parseColor("#1C000000");
             couiLabelPrimary = Color.parseColor("#E5000000");
             couiLabelSecondary = Color.parseColor("#8A000000");
             couiLabelTertiary = Color.parseColor("#42000000");
@@ -193,6 +199,17 @@ public class MainActivity extends Activity {
         gd.setShape(GradientDrawable.RECTANGLE);
         gd.setColor(fillColor);
         gd.setCornerRadius(dp(radiusDp));
+        return gd;
+    }
+
+    private GradientDrawable squircleWithContour(int fillColor, int strokeColor, int strokeWidthDp, int radiusDp) {
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        gd.setColor(fillColor);
+        gd.setCornerRadius(dp(radiusDp));
+        if (strokeWidthDp > 0 && strokeColor != Color.TRANSPARENT) {
+            gd.setStroke(dp(strokeWidthDp), strokeColor);
+        }
         return gd;
     }
 
@@ -255,7 +272,7 @@ public class MainActivity extends Activity {
     private LinearLayout createGroupedCard() {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackground(squircleBg(couiCard, 16));
+        card.setBackground(squircleWithContour(couiCard, couiCardStroke, 1, 18));
         return card;
     }
 
@@ -648,7 +665,7 @@ public class MainActivity extends Activity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(20), dp(22), dp(20), dp(20));
-        card.setBackground(squircleBg(couiCardElevated, 24));
+        card.setBackground(squircleWithContour(couiCardElevated, couiCardStroke, 1, 24));
 
         TextView title = new TextView(this);
         title.setText("ColorOS Battery Diagnostics");
@@ -896,6 +913,13 @@ public class MainActivity extends Activity {
                 badgeRow.addView(vigTag, vtLp);
             }
 
+            if (m.displayMode == VideoProcessor.MODE_AMBIENT_CARD && m.contourGlowEnabled) {
+                TextView glowTag = createTagPill("Contour Glow", couiThemeHalftone, couiTheme);
+                LinearLayout.LayoutParams gtLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                gtLp.leftMargin = dp(4);
+                badgeRow.addView(glowTag, gtLp);
+            }
+
             infoCol.addView(badgeRow);
 
             topRow.addView(infoCol, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -976,7 +1000,7 @@ public class MainActivity extends Activity {
                 LinearLayout c = new LinearLayout(MainActivity.this);
                 c.setOrientation(LinearLayout.VERTICAL);
                 c.setPadding(dp(20), dp(22), dp(20), dp(20));
-                c.setBackground(squircleBg(couiCardElevated, 24));
+                c.setBackground(squircleWithContour(couiCardElevated, couiCardStroke, 1, 24));
 
                 TextView t = new TextView(MainActivity.this);
                 t.setText("Calling Account Setup");
@@ -1048,7 +1072,7 @@ public class MainActivity extends Activity {
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER_HORIZONTAL);
         card.setPadding(dp(20), dp(22), dp(20), dp(20));
-        card.setBackground(squircleBg(couiCardElevated, 24));
+        card.setBackground(squircleWithContour(couiCardElevated, couiCardStroke, 1, 24));
 
         TextView title = new TextView(this);
         title.setText(!TextUtils.isEmpty(m.displayName) ? m.displayName : "Video Preview");
@@ -1067,7 +1091,7 @@ public class MainActivity extends Activity {
         card.addView(sub);
 
         FrameLayout videoContainer = new FrameLayout(this);
-        videoContainer.setBackground(squircleBg(Color.BLACK, 16));
+        videoContainer.setBackground(squircleWithContour(Color.BLACK, couiContourGlow, 1, 16));
         videoContainer.setClipToOutline(true);
         videoContainer.setOutlineProvider(new ViewOutlineProvider() {
             @Override
@@ -1104,14 +1128,14 @@ public class MainActivity extends Activity {
         LinearLayout styleBox = new LinearLayout(this);
         styleBox.setOrientation(LinearLayout.VERTICAL);
         styleBox.setPadding(dp(12), dp(10), dp(12), dp(10));
-        styleBox.setBackground(squircleBg(couiContainer8, 14));
+        styleBox.setBackground(squircleWithContour(couiContainer8, couiCardStroke, 1, 14));
         LinearLayout.LayoutParams sbLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         sbLp.topMargin = dp(8);
         sbLp.bottomMargin = dp(12);
         styleBox.setLayoutParams(sbLp);
 
         TextView styleTitle = new TextView(this);
-        styleTitle.setText("Visual Presentation & Legibility");
+        styleTitle.setText("Textured Visual Effects (ColorOS 16)");
         styleTitle.setTextColor(couiLabelPrimary);
         styleTitle.setTypeface(fontMedium());
         styleTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
@@ -1120,6 +1144,7 @@ public class MainActivity extends Activity {
         // State holder for dialog
         final boolean[] localVig = new boolean[]{ m.vignetteEnabled };
         final int[] localMode = new int[]{ m.displayMode };
+        final boolean[] localContour = new boolean[]{ m.contourGlowEnabled };
 
         LinearLayout optRow = new LinearLayout(this);
         optRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -1138,7 +1163,7 @@ public class MainActivity extends Activity {
             vigBtn.setTextColor(localVig[0] ? couiTheme : couiLabelSecondary);
         });
         LinearLayout.LayoutParams vbLp = new LinearLayout.LayoutParams(0, dp(32), 1f);
-        vbLp.rightMargin = dp(6);
+        vbLp.rightMargin = dp(4);
         optRow.addView(vigBtn, vbLp);
 
         TextView modeBtn = createCapsuleButton(
@@ -1146,14 +1171,33 @@ public class MainActivity extends Activity {
                 localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiThemeHalftone : couiCard,
                 localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiTheme : couiLabelSecondary,
                 false, null);
+
+        TextView contourBtn = createCapsuleButton(
+                localContour[0] ? "Contour ON" : "Contour OFF",
+                localContour[0] ? couiThemeHalftone : couiCard,
+                localContour[0] ? couiTheme : couiLabelSecondary,
+                false, null);
+        contourBtn.setVisibility(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? View.VISIBLE : View.GONE);
+        contourBtn.setOnClickListener(v -> {
+            localContour[0] = !localContour[0];
+            contourBtn.setText(localContour[0] ? "Contour ON" : "Contour OFF");
+            contourBtn.setBackground(rippleSquircle(localContour[0] ? couiThemeHalftone : couiCard, 999));
+            contourBtn.setTextColor(localContour[0] ? couiTheme : couiLabelSecondary);
+        });
+
         modeBtn.setOnClickListener(v -> {
             localMode[0] = (localMode[0] == VideoProcessor.MODE_AMBIENT_CARD) ? VideoProcessor.MODE_FULL_SCREEN : VideoProcessor.MODE_AMBIENT_CARD;
             modeBtn.setText(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? "Ambient Card" : "Full Fill");
             modeBtn.setBackground(rippleSquircle(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiThemeHalftone : couiCard, 999));
             modeBtn.setTextColor(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? couiTheme : couiLabelSecondary);
+            contourBtn.setVisibility(localMode[0] == VideoProcessor.MODE_AMBIENT_CARD ? View.VISIBLE : View.GONE);
         });
         LinearLayout.LayoutParams mbLp = new LinearLayout.LayoutParams(0, dp(32), 1f);
         optRow.addView(modeBtn, mbLp);
+
+        LinearLayout.LayoutParams cbLp = new LinearLayout.LayoutParams(0, dp(32), 1f);
+        cbLp.leftMargin = dp(4);
+        optRow.addView(contourBtn, cbLp);
         styleBox.addView(optRow);
 
         TextView reprocessBtn = createCapsuleButton("Apply Style & Enhance", couiTheme, Color.WHITE, false, v -> {
@@ -1164,6 +1208,7 @@ public class MainActivity extends Activity {
                     VideoProcessor.ProcessingOptions opts = new VideoProcessor.ProcessingOptions();
                     opts.enableVignette = localVig[0];
                     opts.displayMode = localMode[0];
+                    opts.enableContourGlow = localContour[0];
 
                     ContactVideoResolver.reprocessVideoMapping(
                             MainActivity.this,
@@ -1234,7 +1279,7 @@ public class MainActivity extends Activity {
         c.setOrientation(LinearLayout.VERTICAL);
         c.setGravity(Gravity.CENTER);
         c.setPadding(dp(24), dp(24), dp(24), dp(24));
-        c.setBackground(squircleBg(couiCardElevated, 24));
+        c.setBackground(squircleWithContour(couiCardElevated, couiCardStroke, 1, 24));
 
         TextView tv = new TextView(this);
         tv.setText(titleText);
@@ -1311,7 +1356,7 @@ public class MainActivity extends Activity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(dp(20), dp(22), dp(20), dp(20));
-        card.setBackground(squircleBg(couiCardElevated, 24));
+        card.setBackground(squircleWithContour(couiCardElevated, couiCardStroke, 1, 24));
 
         TextView title = new TextView(this);
         title.setText("Simulate Real Incoming Call");

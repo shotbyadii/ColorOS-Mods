@@ -63,6 +63,7 @@ public class VideoProcessor {
     public static class ProcessingOptions {
         public boolean enableVignette = true;
         public int displayMode = MODE_FULL_SCREEN; // or MODE_AMBIENT_CARD
+        public boolean enableContourGlow = true;   // ColorOS 16 Textured Contour Glow (luminous edge lighting)
         public float vignetteTopStrength = 0.70f;
         public float vignetteBottomStrength = 0.75f;
         public float cardCornerRadius = 0.045f; // Normalized GL radius
@@ -387,6 +388,7 @@ public class VideoProcessor {
         // Custom Uniforms
         private int muModeHandle = -1;
         private int muEnableVignetteHandle = -1;
+        private int muEnableContourGlowHandle = -1;
         private int muVignetteTopHandle = -1;
         private int muVignetteBottomHandle = -1;
         private int muCardParamsHandle = -1;
@@ -523,6 +525,7 @@ public class VideoProcessor {
                     "uniform mat4 uSTMatrix;\n" +
                     "uniform int uMode;\n" +               // 0 = Full screen, 1 = Ambient Card
                     "uniform int uEnableVignette;\n" +      // 1 = enabled, 0 = disabled
+                    "uniform int uEnableContourGlow;\n" +   // 1 = ColorOS 16 Contour Glow enabled
                     "uniform float uVignetteTop;\n" +        // 0.70
                     "uniform float uVignetteBottom;\n" +     // 0.75
                     "uniform vec4 uCardParams;\n" +         // [cardHalfW, cardHalfH, cornerRadius, screenAspect]
@@ -581,9 +584,24 @@ public class VideoProcessor {
                     "        float cardAlpha = clamp(1.0 - smoothstep(-0.003, 0.002, dist), 0.0, 1.0);\n" +
                     "        baseColor = mix(compBg, cardContent, cardAlpha);\n" +
                     "\n" +
-                    "        // Subtle luxury rim highlight on the card squircle border\n" +
-                    "        float rimLight = smoothstep(0.0035, 0.0, abs(dist)) * 0.12;\n" +
-                    "        baseColor.rgb += vec3(rimLight);\n" +
+                    "        // ColorOS 16 Textured Visual Effects: Visual Blur + Contour Glow\n" +
+                    "        if (uEnableContourGlow == 1) {\n" +
+                    "            // 1. Luminous Contour Halo radiating outwards from squircle perimeter\n" +
+                    "            float contourHalo = clamp(1.0 - smoothstep(0.0, 0.032, dist), 0.0, 1.0);\n" +
+                    "            compBg.rgb += contourHalo * 0.28 * (ambientBg.rgb + vec3(0.40));\n" +
+                    "            baseColor = mix(compBg, baseColor, cardAlpha);\n" +
+                    "\n" +
+                    "            // 2. Refined specular edge lighting hugging the card contour\n" +
+                    "            float contourEdge = smoothstep(0.006, 0.0, abs(dist)) * 0.32;\n" +
+                    "            baseColor.rgb += vec3(contourEdge);\n" +
+                    "\n" +
+                    "            // 3. Frosted translucent inner rim bevel\n" +
+                    "            float innerBevel = clamp(smoothstep(-0.024, 0.0, dist), 0.0, 1.0) * cardAlpha * 0.14;\n" +
+                    "            baseColor.rgb += vec3(innerBevel);\n" +
+                    "        } else {\n" +
+                    "            float rimLight = smoothstep(0.0035, 0.0, abs(dist)) * 0.10;\n" +
+                    "            baseColor.rgb += vec3(rimLight);\n" +
+                    "        }\n" +
                     "    } else {\n" +
                     "        // FULL SCREEN FILL MODE (Center-Crop)\n" +
                     "        baseColor = texture2D(sTexture, vTextureCoord);\n" +
@@ -615,6 +633,7 @@ public class VideoProcessor {
 
             muModeHandle = GLES20.glGetUniformLocation(mProgram, "uMode");
             muEnableVignetteHandle = GLES20.glGetUniformLocation(mProgram, "uEnableVignette");
+            muEnableContourGlowHandle = GLES20.glGetUniformLocation(mProgram, "uEnableContourGlow");
             muVignetteTopHandle = GLES20.glGetUniformLocation(mProgram, "uVignetteTop");
             muVignetteBottomHandle = GLES20.glGetUniformLocation(mProgram, "uVignetteBottom");
             muCardParamsHandle = GLES20.glGetUniformLocation(mProgram, "uCardParams");
@@ -678,6 +697,7 @@ public class VideoProcessor {
             // Pass Options
             GLES20.glUniform1i(muModeHandle, mOptions.displayMode);
             GLES20.glUniform1i(muEnableVignetteHandle, mOptions.enableVignette ? 1 : 0);
+            GLES20.glUniform1i(muEnableContourGlowHandle, mOptions.enableContourGlow ? 1 : 0);
             GLES20.glUniform1f(muVignetteTopHandle, mOptions.vignetteTopStrength);
             GLES20.glUniform1f(muVignetteBottomHandle, mOptions.vignetteBottomStrength);
 

@@ -50,6 +50,7 @@ public class ContactVideoResolver {
         public String originalVideoPath = "";
         public boolean vignetteEnabled = true;
         public int displayMode = VideoProcessor.MODE_FULL_SCREEN;
+        public boolean contourGlowEnabled = true;
         public String savedCustomRingtone = "";
         public boolean fromFolderAuto = false;
 
@@ -65,6 +66,7 @@ public class ContactVideoResolver {
             o.put("originalVideoPath", originalVideoPath);
             o.put("vignetteEnabled", vignetteEnabled);
             o.put("displayMode", displayMode);
+            o.put("contourGlowEnabled", contourGlowEnabled);
             o.put("savedCustomRingtone", savedCustomRingtone);
             return o;
         }
@@ -81,6 +83,7 @@ public class ContactVideoResolver {
             m.originalVideoPath = o.optString("originalVideoPath", "");
             m.vignetteEnabled = o.optBoolean("vignetteEnabled", true);
             m.displayMode = o.optInt("displayMode", VideoProcessor.MODE_FULL_SCREEN);
+            m.contourGlowEnabled = o.optBoolean("contourGlowEnabled", true);
             m.savedCustomRingtone = o.optString("savedCustomRingtone", "");
             return m;
         }
@@ -511,6 +514,7 @@ public class ContactVideoResolver {
         target.originalVideoPath = rawFile.getAbsolutePath();
         target.vignetteEnabled = (options != null) ? options.enableVignette : true;
         target.displayMode = (options != null) ? options.displayMode : VideoProcessor.MODE_FULL_SCREEN;
+        target.contourGlowEnabled = (options != null) ? options.enableContourGlow : true;
         target.videoUri = mediaUri;
         target.fromFolderAuto = false;
 
@@ -563,6 +567,7 @@ public class ContactVideoResolver {
         target.videoUri = mediaUri;
         target.vignetteEnabled = options.enableVignette;
         target.displayMode = options.displayMode;
+        target.contourGlowEnabled = options.enableContourGlow;
 
         ConfigData config = loadConfig(context);
         for (int i = 0; i < config.mappings.size(); i++) {

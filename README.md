@@ -1,183 +1,142 @@
 <div align="center">
 
-# ODialer Video Ringtone
+# ColorOS Mods
 
-### Per-contact video ringtones with ColorOS 16 Textured Visual Effects for non-rooted Oppo & OnePlus devices.
+### A collection of aesthetic hardware-accelerated mods, visual engines, and companion utilities for Oppo & OnePlus devices running ColorOS 16 & 17.
 
 <br/>
 
+[![Tested on ColorOS 16 & 17](https://img.shields.io/badge/ColorOS-16_%26_17_%2F_Android_16--17-00BD13?style=for-the-badge&logo=oppo&logoColor=white&labelColor=0d1117)](https://www.oppo.com)
+[![Target Device: Oppo Find X9](https://img.shields.io/badge/Device-Oppo_Find_X9-E60012?style=for-the-badge&logo=oppo&logoColor=white&labelColor=0d1117)](https://www.oppo.com)
+[![Zero Root Required](https://img.shields.io/badge/Root-Non--Root_User--Space-0066FF?style=for-the-badge&logo=android&logoColor=white&labelColor=0d1117)](#modules)
+[![OpenGL ES 2.0](https://img.shields.io/badge/Graphics-OpenGL_ES_2.0_Shaders-5586A4?style=for-the-badge&logo=opengl&logoColor=white&labelColor=0d1117)](#modules)
 [![Built with Antigravity](https://img.shields.io/badge/Built_with-Google_Antigravity-4285F4?style=for-the-badge&logo=google&logoColor=white&labelColor=0d1117)](https://antigravity.google)
-[![Tested on ColorOS 16](https://img.shields.io/badge/ColorOS-16_%2F_Android_16-00BD13?style=for-the-badge&logo=oppo&logoColor=white&labelColor=0d1117)](https://www.oppo.com)
-[![Non-Root Engine](https://img.shields.io/badge/Engine-Non--Root_CallScreening-0066FF?style=for-the-badge&logo=android&logoColor=white&labelColor=0d1117)](#how-it-works)
 [![License: MIT](https://img.shields.io/badge/License-MIT-a855f7?style=for-the-badge&labelColor=0d1117)](LICENSE)
-[![Java 11](https://img.shields.io/badge/Java-11-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white&labelColor=0d1117)](https://openjdk.org/)
-[![OpenGL ES 2.0](https://img.shields.io/badge/OpenGL_ES-2.0_Shaders-5586A4?style=for-the-badge&logo=opengl&logoColor=white&labelColor=0d1117)](#textured-visual-effects)
 
 <br/>
 
-[**Features**](#features) · [**How It Works**](#how-it-works) · [**Textured Visual Effects**](#textured-visual-effects) · [**Getting Started**](#getting-started) · [**Architecture**](#technical-architecture) · [**Privacy**](#privacy) · [**License**](#license)
+[**Modules Overview**](#modules) · [**Lockscreen Canvas**](#1-lockscreen-canvas-lockscreen-video-cover) · [**ODialer Video Ringtone**](#2-odialer-video-ringtone) · [**Installation**](#quick-installation) · [**Monorepo Structure**](#monorepo-structure) · [**License**](#license)
 
 <br/>
 
 </div>
 
 > [!NOTE]
-> **A Vibe-Coded Systems Experiment**:
-> This project is an Android systems engineering experiment created entirely inside **Google Antigravity**, pairing with Google DeepMind's Gemini models. The companion service, pre-ring CallScreening interceptor, MediaCodec hardware video pipeline, and custom ColorOS 16 OpenGL ES shaders were developed iteratively without rooting or modifying system partition images on a real **Oppo Find X9** (`CPH2797`, ColorOS 16 / Android 16).
+> **Crafted with Google Antigravity & DeepMind**:
+> These mods were developed and refined iteratively on a physical **Oppo Find X9** (`CPH2797`, ColorOS 16 & 17 / Android 16 & 17) using Google Antigravity and Gemini models. All visual enhancements and companion services operate entirely in user-space without unlocking the bootloader, flashing magisk, or altering system partitions.
 
 ---
+
+## <a id="modules"></a>Modules Overview
+
+| Module | Directory | Key Highlights |
+| :--- | :--- | :--- |
+| **Lockscreen Video Cover** | [`lockscreen-canvas/`](lockscreen-canvas/) | 60FPS dynamic canvas live wallpaper, BitChord Now Playing card, live LRCLIB synced lyrics, real-time FLAC/Hi-Res stream upgrade detection, and top wallpaper gradient reveal. |
+| **ODialer Video Ringtone** | [`odialer-video-ringtone/`](odialer-video-ringtone/) | Non-root per-contact video ringtones for native ColorOS Phone / ODialer with Contour Glow rim lighting, dynamic visual blur, and pre-ring CallScreening injection. |
+
+---
+
+## 1. Lockscreen Canvas (`lockscreen-canvas`)
 
 <div align="center">
-
-<h1><a id="features"></a>Features</h1>
-
+  <img src="docs/lockscreen_card.png" width="31%" alt="BitChord Now Playing Card & Lyrics"/>
+  &nbsp;&nbsp;
+  <img src="docs/lockscreen_canvas.png" width="31%" alt="Dynamic Video Canvas"/>
+  &nbsp;&nbsp;
+  <img src="docs/lockscreen_art_fallback.png" width="31%" alt="ColorOS 17 Ambient Art Framing"/>
 </div>
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
+### Highlights
+- **60FPS Hardware Canvas Engine**: Seamlessly hooks music sessions (**BitChord**, **Spotify**, and **Apple Music**), streaming high-definition vertical canvas loops at 60 FPS using an OpenGL ES 2.0 hardware pipeline.
+- **BitChord Now Playing Card & Live Synced Lyrics**:
+  - Exact Apple Music / BitChord card layout positioned cleanly directly above the native lockscreen media player pill.
+  - Sourced from active media sessions and rendered in authentic Apple SF Pro Display typography.
+  - Integrates with the open **LRCLIB** synchronized lyrics API (`lrclib.net`), highlighting active singing lines in real time with trailing `›` chevrons.
+  - Interactive scrub bar showing elapsed (`1:03`) and remaining (`-2:06`) timestamps with circular frosted glass action buttons (Favorite Star & 3-Dots menu).
+- **Real-Time Lossless FLAC Upgrade Tracking**:
+  - Dynamically evaluates active `AudioManager` playback configurations.
+  - Detects when BitChord upgrades its stream from initial Opus buffer to CD-quality FLAC (44.1 kHz Red Book) or 24-bit Hi-Res Lossless (96 kHz), updating quality tags on the fly.
+  - Clean light microtypography without blur or drop-shadow artifacts.
+- **Top Wallpaper Gradient Reveal Feature**:
+  - GPU fragment shader feathering curve (`topAlpha = smoothstep(0.77, 0.47, normCoord.y)`).
+  - Softly dissolves the top 30% of canvas video, revealing your stock lockscreen wallpaper curves cleanly behind the clock and widgets.
+  - User-selectable in app settings: **Top Wallpaper Reveal** vs **Full Screen Canvas**.
+- **ColorOS 17 Ambient Artwork Framing**:
+  - Automatically downloads 1400×1400 artwork when a song lacks a video canvas.
+  - Features aspect-ratio preserved geometric framing with dual-gradient top and bottom ambient blurred extensions.
 
-#### 🎬 Per-Contact Video Ringtones
-- Assign unique, full-motion MP4 video ringtones to individual contacts.
-- Zero impact on unassigned callers: all other incoming calls cleanly fall back to your normal system audio ringtone.
-- Automatic contact auto-matching by placing files named `<Contact Name>.mp4` or `<Phone Number>.mp4` directly into `/sdcard/Ringtones/VideoRingtones/`.
-
-#### 🛡️ Zero Root Required
-- Operates entirely in user-space via Android's `CallScreeningService` role and `Settings.System.canWrite`.
-- Intercepts incoming calls milliseconds before the ColorOS Phone dialer triggers audio/video ringtones.
-- Swaps the system ringtone URI dynamically, hands off execution to the native ColorOS dialer, and restores your fallback audio ringtone immediately upon call termination.
-
-</td>
-<td width="50%" valign="top">
-
-#### 🌟 ColorOS 16 Textured Visual Effects
-- **Contour Glow**: Real-time edge lighting shader creating luminous rim halos, frosted inner bevels, and specular highlights hugging floating video cards.
-- **Dynamic Visual Blur**: Progressive dual-pass Gaussian blur background that samples live video colors in real time.
-- **Aspect-Ratio Preserved Ambient Card**: 1:1 geometric scaling ensuring 9:16, 3:4, 1:1, or 16:9 videos float naturally without distortion.
-- **Dark Legibility Gradients**: Smooth top and bottom alpha vignetting preserving high contrast for incoming caller text and dialer buttons.
-
-#### ⚡ On-Device Hardware Transcoding
-- Fast hardware video processing via Android `MediaCodec`, `MediaExtractor`, `MediaMuxer`, and an EGL `SurfaceTexture` render pipeline.
-- Instant per-contact styling controls: toggle between **Ambient Card** and **Full Screen** layouts with a single tap.
-- Built-in real call simulator to ring the device live through Android Telecom for testing.
-
-</td>
-  </tr>
-</table>
+👉 **[Read Lockscreen Canvas Documentation →](lockscreen-canvas/)**
 
 ---
 
-## <a id="how-it-works"></a>How It Works
+## 2. ODialer Video Ringtone (`odialer-video-ringtone`)
 
-```mermaid
-flowchart TD
-    A["📞 Incoming Call Received"] --> B{"🛡️ Pre-Ring CallScreeningService"}
-    B -->|Match Found| C["🔍 Lookup Contact in Video Registry"]
-    B -->|No Match| D["🔔 Play System Fallback Audio Ringtone"]
-    C --> E["⚡ Settings.System.putString('ringtone', videoUri)"]
-    E --> F["📱 ColorOS Phone.apk (InCallUI) Launches"]
-    F --> G["🎬 ColorOS Plays Video Ringtone with Textured Effects"]
-    G --> H["📴 Call Ends / Dismissed"]
-    H --> I["🔄 PhoneStateListener Restores Fallback Audio URI"]
-```
+<div align="center">
+  <img src="docs/dialer_demo.png" width="45%" alt="ODialer Video Ringtone Preview"/>
+  &nbsp;&nbsp;
+  <img src="docs/dialer_live_call.png" width="45%" alt="Live Call Screen with Effects"/>
+</div>
 
-1. **Pre-Ring Screening**: Android's `CallScreeningService` receives incoming caller phone numbers before the phone alerts the user or plays ringtones.
-2. **Instant Match**: The background service resolves the caller against configured contact mappings or scans `/sdcard/Ringtones/VideoRingtones/`.
-3. **Seamless URI Injection**: When an assigned contact is detected, the service swaps `Settings.System.ringtone` to point to the enhanced video file.
-4. **Native ColorOS Dialing**: ColorOS's native `com.android.incallui` takes over, rendering the video ringtone directly inside the system call screen.
-5. **Safe Restoration**: A registered `PhoneStateListener` intercepts `CALL_STATE_IDLE` when the call ends, instantly reverting the system ringtone URI to your preferred fallback ringtone.
+### Highlights
+- **Per-Contact Video Ringtones Without Root**: Assign unique MP4 videos to individual callers. Unassigned callers seamlessly hear your default system audio ringtone.
+- **Pre-Ring CallScreening Interception**: Uses Android's `CallScreeningService` to intercept calls milliseconds before ringing starts, swaps `Settings.System.ringtone`, hands off to native ColorOS `com.android.incallui`, and restores your fallback audio ringtone upon hang-up.
+- **ColorOS 16/17 Textured Visual Effects**:
+  - **Contour Glow**: Real-time edge lighting shader creating luminous rim halos, frosted inner bevels, and specular highlights hugging floating video cards.
+  - **Dynamic Visual Blur**: Progressive dual-pass Gaussian blur background that samples live video colors in real time.
+  - **Aspect-Ratio Preserved Ambient Card**: 1:1 geometric scaling ensuring 9:16, 3:4, 1:1, or 16:9 videos float naturally without distortion.
+- **Hardware MediaCodec Transcoding**: Fast on-device video transcoding with instant 1-tap real call simulation.
 
----
-
-## <a id="textured-visual-effects"></a>ColorOS 16 Textured Visual Effects
-
-ColorOS 16 introduced "Textured Visual Effects", emphasizing luminous boundaries, frosted glass translucency, and organic tactile depth. This project brings those exact design principles to video ringtones via hardware OpenGL ES shaders:
-
-```mermaid
-flowchart LR
-    Raw["Original MP4 Source"] --> Decoder["MediaCodec Video Decoder"]
-    Decoder --> EGL["EGL SurfaceTexture"]
-    EGL --> Shader["OpenGL ES Fragment Shader\n(Contour Glow + Blur + Vignette)"]
-    Shader --> Encoder["MediaCodec Video Encoder"]
-    Encoder --> Enhanced["Enhanced ColorOS 16 Video"]
-```
-
-- **Contour Glow Shader**: Uses an OpenGL ES 2.0 multi-stop fragment shader (`uEnableContourGlow`) that computes exact signed distance from the card squircle perimeter, projecting an outer luminous glow (`rgba(255, 255, 255, 0.40)`), an intense 1dp specular rim (`rgba(255, 255, 255, 0.85)`), and an inner frosted bevel.
-- **Dynamic Progressive Visual Blur**: Downsamples video frames across an 8-tap Gaussian kernel, projecting dynamic ambient lighting across the entire screen behind the floating card.
-- **Zero-Squish Aspect Ratio Math**: Dynamically calculates `aspectScale = srcAspect / targetAspect` to guarantee zero vertical compression or horizontal stretch regardless of video dimensions.
+👉 **[Read ODialer Video Ringtone Documentation →](odialer-video-ringtone/)**
 
 ---
 
-## <a id="technical-architecture"></a>Technical Architecture
+## <a id="quick-installation"></a>Quick Installation
 
-| Component | Class / File | Role |
-| :--- | :--- | :--- |
-| **Call Interceptor** | [`VideoRingtoneScreeningService.java`](companion-app/src/com/odialer/videoringtone/VideoRingtoneScreeningService.java) | System `CallScreeningService` that receives incoming calls pre-ring. |
-| **Ringtone Switcher** | [`ContactVideoResolver.java`](companion-app/src/com/odialer/videoringtone/ContactVideoResolver.java) | Resolves contact numbers, registers local URIs, and switches system settings. |
-| **Video Engine** | [`VideoProcessor.java`](companion-app/src/com/odialer/videoringtone/VideoProcessor.java) | EGL/OpenGL ES 2.0 shader pipeline and MediaCodec hardware video transcode. |
-| **Call Lifecycle** | [`PhoneCallStateService.java`](companion-app/src/com/odialer/videoringtone/PhoneCallStateService.java) | Monitors phone states and safely restores fallback audio ringtones. |
-| **Live Simulator** | [`TestCallConnectionService.java`](companion-app/src/com/odialer/videoringtone/TestCallConnectionService.java) | Android Telecom `ConnectionService` for one-tap real call testing. |
-| **Companion App** | [`MainActivity.java`](companion-app/src/com/odialer/videoringtone/MainActivity.java) | Aquamorphic UI with segmented controls, live preview, and battery diagnostics. |
+Pre-compiled, aligned, and signed release APKs are available in the respective `dist/` folders:
 
----
-
-## <a id="getting-started"></a>Getting Started
-
-### Prerequisites
-- An **Oppo**, **OnePlus**, or **Realme** device running **ColorOS 14, 15, or 16** (Android 14+).
-- The native **ODialer** or **ColorOS Phone** app (`com.google.android.dialer` is not supported for video ringtones; use the official ColorOS dialer).
-- A computer with `adb` (Android Debug Bridge).
-
-### 1. Download or Build the APK
-
-You can grab the pre-compiled signed APK directly from `dist/`:
-```bash
-adb install -r dist/ODialerVideoRingtone.apk
-```
-
-Or build from source using Java 11 and Android SDK 36:
+### 1. Install Lockscreen Canvas
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\build_companion.ps1
+adb install -r -d lockscreen-canvas/dist/LockVideoCover.apk
 ```
+1. Open **Lock Video Cover** → Grant Notification & Storage Access.
+2. Tap **Apply Lock Screen Wallpaper** → Select **Lock screen**.
+3. Play any track in BitChord, Spotify, or Apple Music!
 
-### 2. Grant Permissions via ADB (One-Time Setup)
-
-To allow the companion app to intercept calls and switch system ringtones without root, run these commands once from your PC:
-
-```bash
-# Allow writing system settings (ringtone URI switching)
+### 2. Install ODialer Video Ringtone
+```powershell
+adb install -r -d odialer-video-ringtone/dist/ODialerVideoRingtone.apk
+```
+Grant required user-space permissions via ADB:
+```powershell
 adb shell appops set com.odialer.videoringtone WRITE_SETTINGS allow
-
-# Set Call Screening role to enable pre-ring interception
 adb shell cmd role add-role-holder --user 0 android.app.role.CALL_SCREENING com.odialer.videoringtone
-
-# Grant full media and storage access
 adb shell appops set com.odialer.videoringtone MANAGE_EXTERNAL_STORAGE allow
 adb shell pm grant com.odialer.videoringtone android.permission.READ_CONTACTS
 adb shell pm grant com.odialer.videoringtone android.permission.WRITE_CONTACTS
 adb shell pm grant com.odialer.videoringtone android.permission.READ_PHONE_STATE
-
-# Optional: Enable the live call simulation account for 1-tap testing
-adb shell telecom set-phone-account-enabled "com.odialer.videoringtone/com.odialer.videoringtone.TestCallConnectionService;odialer_sim_account" 0
 ```
-
-### 3. Assign Video Ringtones
-
-1. Open **Video Ringtones** on your phone.
-2. Tap **+ Assign Video to Contact** and select a contact and any MP4 video.
-3. Tap **Preview** to customize effects:
-   - Choose **Ambient Card** (floating card with dynamic background blur) or **Full Screen**.
-   - Toggle **✨ Contour Glow** edge lighting and **🌓 Call Gradient** legibility darkening.
-   - Tap **Apply Style & Enhance** to generate the textured video in seconds.
-4. Tap **Ring Live** to simulate an incoming call and verify your video in real time!
 
 ---
 
-## <a id="privacy"></a>Privacy & Permissions
+## <a id="monorepo-structure"></a>Monorepo Structure
 
-- **100% Offline & Private**: Zero internet permissions requested (`android.permission.INTERNET` is not even declared in `AndroidManifest.xml`).
-- **No Analytics / Telemetry**: No tracking SDKs, no ad networks, and no cloud dependencies.
-- **Your Data Stays on Your Device**: All contact mappings and transcoded videos are stored exclusively on your local device storage.
+```
+coloros-mods/
+├── docs/                                  # Showcase screenshots and visual assets
+├── lockscreen-canvas/                     # Lock Video Cover module
+│   ├── src/com/odialer/lockvideocover/    # OpenGL ES renderer, lyrics engine, audio quality
+│   ├── res/                               # ColorOS 17 squircle resources and UI layouts
+│   ├── assets/fonts/                      # Apple SF Pro Display typography (Bold, Medium, Regular)
+│   ├── build.ps1                          # Standalone aapt2 + javac + d8 + apksigner pipeline
+│   └── dist/LockVideoCover.apk            # Pre-compiled signed release APK
+├── odialer-video-ringtone/                # ODialer Video Ringtone module
+│   ├── companion-app/                     # CallScreeningService, VideoProcessor, InCallUI bridge
+│   ├── scripts/build_companion.ps1        # Build automation script
+│   └── dist/ODialerVideoRingtone.apk      # Pre-compiled signed release APK
+├── .gitignore
+├── LICENSE                                # MIT License
+└── README.md
+```
 
 ---
 
@@ -189,8 +148,6 @@ Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
 Copyright (c) 2026 Aditya (shotbyadii)
 ```
 
----
-
 <div align="center">
-  <sub>A systems experiment built with Google Antigravity &amp; Gemini.</sub>
+  <sub>Engineered with Google Antigravity &amp; Gemini.</sub>
 </div>

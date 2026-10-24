@@ -1,5 +1,12 @@
-build/
-!build/release.keystore
-*.xml
+# Build and intermediate compiler outputs
+**/build/
+!**/release.keystore
 *.log
-*.png
+.gradle/
+.idea/
+*.iml
+local.properties
+.DS_Store
+
+# Temporary outputs
+*.tmp

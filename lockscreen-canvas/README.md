@@ -23,8 +23,8 @@ When a track lacks a video canvas, it automatically frames high-resolution album
 - **Apple Music / BitChord Aesthetics**: Positioned cleanly directly above the native lockscreen media player pill.
 - **Microtypography**: Apple SF Pro Display typography (Bold, Medium, Regular) loaded natively.
 - **Real-Time Synced Lyrics**: Integrated with the open **LRCLIB** synced lyrics engine (`lrclib.net`), matching BitChord's backend. Tracks current playback millisecond timestamp and highlights active lines with trailing `›` chevrons.
-- **Dynamic Scrub Bar**: Rounded progress bar indicating elapsed and remaining time (`1:03` / `-2:06`).
-- **Frosted Action Controls**: Favorite Star and 3-Dots overflow buttons with subtle circular frosted glass backgrounds.
+- **Dynamic Scrub Bar**: Rounded progress bar indicating elapsed and remaining time (`1:03` / `-2:06`) with 0.4x larger typography.
+- **Background Song-Shift Screen Wake**: Automatically wakes the display when a song changes while phone is in off state.
 
 ### 2. Live Lossless FLAC Stream Detection
 - Tracks real-time audio playback configurations via `AudioManager.getActivePlaybackConfigurations()` and reactive callbacks.

@@ -18,6 +18,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.net.Uri;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
@@ -102,6 +103,16 @@ public class MediaPlaybackMonitorService extends NotificationListenerService {
     public static void setNowPlayingCardEnabled(Context context, boolean enabled) {
         context.getSharedPreferences("engine_prefs", Context.MODE_PRIVATE)
                 .edit().putBoolean("now_playing_card_enabled", enabled).apply();
+    }
+
+    public static boolean isWakeOnTrackChangeEnabled(Context context) {
+        return context.getSharedPreferences("engine_prefs", Context.MODE_PRIVATE)
+                .getBoolean("wake_on_track_change", true);
+    }
+
+    public static void setWakeOnTrackChangeEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences("engine_prefs", Context.MODE_PRIVATE)
+                .edit().putBoolean("wake_on_track_change", enabled).apply();
     }
 
     public static boolean isInjectionEnabled(Context context) {
@@ -499,6 +510,25 @@ public class MediaPlaybackMonitorService extends NotificationListenerService {
         return null;
     }
 
+    private void wakeScreenIfOff() {
+        if (!isWakeOnTrackChangeEnabled(this)) return;
+        try {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null && !pm.isInteractive()) {
+                Log.i(TAG, "Phone screen is off during song shift -> Waking screen now");
+                @SuppressWarnings("deprecation")
+                PowerManager.WakeLock wakeLock = pm.newWakeLock(
+                        PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE,
+                        "LockVideoCover:TrackShiftWake"
+                );
+                wakeLock.setReferenceCounted(false);
+                wakeLock.acquire(3000);
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "Failed to wake screen on track shift: " + t.getMessage());
+        }
+    }
+
     private void processTrack(String rawTitle, String rawArtist, String album, Bitmap art) {
         processTrack(rawTitle, rawArtist, album, art, null);
     }
@@ -516,6 +546,9 @@ public class MediaPlaybackMonitorService extends NotificationListenerService {
             mLastTrackKey = trackKey;
             mLastExtractedAlbumArt = art;
             Log.i(TAG, "Track changed -> Title: " + rawTitle + " (clean: " + cleanTitle + ") | Artist: " + rawArtist);
+
+            // Wake screen if phone is in off state
+            wakeScreenIfOff();
 
             String activePkg = (mActiveController != null) ? mActiveController.getPackageName() : "com.music.bitchord";
             PlaybackQualityOverlay.notifyTrackStarted(cleanTitle, cleanArtist, activePkg);

@@ -52,7 +52,8 @@
   - Exact Apple Music / BitChord card layout positioned cleanly directly above the native lockscreen media player pill.
   - Sourced from active media sessions and rendered in authentic Apple SF Pro Display typography.
   - Integrates with the open **LRCLIB** synchronized lyrics API (`lrclib.net`), highlighting active singing lines in real time with trailing `›` chevrons.
-  - Interactive scrub bar showing elapsed (`1:03`) and remaining (`-2:06`) timestamps with circular frosted glass action buttons (Favorite Star & 3-Dots menu).
+  - Interactive scrub bar showing elapsed (`1:03`) and remaining (`-2:06`) timestamps with 0.4x larger typography and full-width text bounds.
+  - Automatically wakes the screen on background song shift when the phone is in off state.
 - **Real-Time Lossless FLAC Upgrade Tracking**:
   - Dynamically evaluates active `AudioManager` playback configurations.
   - Detects when BitChord upgrades its stream from initial Opus buffer to CD-quality FLAC (44.1 kHz Red Book) or 24-bit Hi-Res Lossless (96 kHz), updating quality tags on the fly.

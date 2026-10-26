@@ -34,6 +34,10 @@ public class LockscreenWallpaperService extends WallpaperService {
         return sCurrentVideoPath == null;
     }
 
+    public static boolean isMediaPlaying() {
+        return sIsMediaPlaying;
+    }
+
     public static void requestOverlayRedraw() {
         if (sActiveEngine != null) {
             sActiveEngine.onOverlayUpdateNeeded();
@@ -196,7 +200,7 @@ public class LockscreenWallpaperService extends WallpaperService {
             }
             if (mTimeoutManager != null) {
                 if (visible) {
-                    boolean isCanvasPlaying = sIsMediaPlaying && (sCurrentVideoPath != null);
+                    boolean isCanvasPlaying = sIsMediaPlaying && (sCurrentVideoPath != null || sCurrentAlbumArt != null);
                     mTimeoutManager.onLockscreenBecameVisible(isCanvasPlaying);
                 } else {
                     mTimeoutManager.onLockscreenBecameInvisible();

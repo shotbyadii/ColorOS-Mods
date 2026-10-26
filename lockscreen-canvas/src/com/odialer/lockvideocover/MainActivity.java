@@ -366,6 +366,49 @@ public class MainActivity extends Activity {
         engineCard.addView(cardToggleRow);
 
         // Divider
+        View divWake = new View(this);
+        divWake.setBackgroundColor(couiContainer8);
+        LinearLayout.LayoutParams dLpWake = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+        dLpWake.setMargins(0, dp(14), 0, dp(14));
+        divWake.setLayoutParams(dLpWake);
+        engineCard.addView(divWake);
+
+        // Wake Screen on Song Shift Row
+        LinearLayout wakeToggleRow = new LinearLayout(this);
+        wakeToggleRow.setOrientation(LinearLayout.HORIZONTAL);
+        wakeToggleRow.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout wakeTextCol = new LinearLayout(this);
+        wakeTextCol.setOrientation(LinearLayout.VERTICAL);
+        wakeTextCol.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView wakeTitle = new TextView(this);
+        wakeTitle.setText("Wake Screen on Song Shift");
+        wakeTitle.setTextColor(couiLabelPrimary);
+        wakeTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        wakeTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+        wakeTextCol.addView(wakeTitle);
+
+        TextView wakeSub = new TextView(this);
+        wakeSub.setText("Turn screen on when a new track plays while phone is in off state.");
+        wakeSub.setTextColor(couiLabelSecondary);
+        wakeSub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        wakeSub.setPadding(0, dp(2), 0, 0);
+        wakeTextCol.addView(wakeSub);
+
+        wakeToggleRow.addView(wakeTextCol);
+
+        Switch wakeToggle = new Switch(this);
+        wakeToggle.setChecked(MediaPlaybackMonitorService.isWakeOnTrackChangeEnabled(this));
+        wakeToggle.setOnCheckedChangeListener((b, isChecked) -> {
+            MediaPlaybackMonitorService.setWakeOnTrackChangeEnabled(this, isChecked);
+            Toast.makeText(this, isChecked ? "Screen wake on song shift enabled" : "Screen wake on song shift disabled", Toast.LENGTH_SHORT).show();
+        });
+        wakeToggleRow.addView(wakeToggle);
+
+        engineCard.addView(wakeToggleRow);
+
+        // Divider
         View div1 = new View(this);
         div1.setBackgroundColor(couiContainer8);
         LinearLayout.LayoutParams dLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));

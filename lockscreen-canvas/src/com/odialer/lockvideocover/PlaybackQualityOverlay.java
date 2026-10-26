@@ -273,9 +273,9 @@ public class PlaybackQualityOverlay {
     }
 
     /**
-     * Renders the complete BitChord Now Playing Card (Title, Artist, Action Buttons,
-     * Synced Lyrics, Progress Bar, Timestamps, and Audio Quality) in the exact layout
-     * matching BitChord / Apple Music aesthetics right above the bottom media pill.
+     * Renders the complete BitChord Now Playing Card (Title, Artist,
+     * Synced Lyrics, Progress Bar, Timestamps, and Audio Quality) with 0.4x larger
+     * elements, without non-functional buttons, aligned above the bottom media pill.
      */
     public static void drawBitChordCard(Canvas canvas, int screenWidth, int screenHeight,
                                         MediaPlaybackMonitorService.PlaybackSnapshot snapshot,
@@ -287,16 +287,29 @@ public class PlaybackQualityOverlay {
         float cardRight = screenWidth * 0.92f;
         float cardWidth = cardRight - cardLeft;
 
-        // Vertical positions directly above the bottom pill (pill sits around 0.884 * screenHeight)
+        // Base typography sizes (scaled 1.4x for 0.4x larger elements)
+        float titleSize = Math.round(screenWidth * 0.049f);
+        float artistSize = Math.round(screenWidth * 0.0336f);
+        float lyricSize = Math.round(screenWidth * 0.035f);
+        float timeSize = Math.round(screenWidth * 0.0259f);
+        float barHeight = Math.round(screenWidth * 0.0077f);
+
+        boolean hasLyrics = (lyricLine != null && !lyricLine.trim().isEmpty());
+
+        // Vertical positions directly above the bottom pill
         float row4TimeY = screenHeight * 0.866f;
-        float row3ProgressY = screenHeight * 0.849f;
-        float row2LyricsY = screenHeight * 0.830f;
-        float row1ArtistY = screenHeight * 0.798f;
-        float row1TitleY = screenHeight * 0.776f;
+        float row3ProgressY = row4TimeY - timeSize * 1.35f - barHeight;
+        float row2LyricsY = row3ProgressY - dpToPx(screenWidth, 12);
+        float row1ArtistY = hasLyrics
+                ? (row2LyricsY - lyricSize - dpToPx(screenWidth, 10))
+                : (row3ProgressY - dpToPx(screenWidth, 16));
+        float row1TitleY = row1ArtistY - artistSize - dpToPx(screenWidth, 8);
 
         Paint boldPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
         boldPaint.setTypeface(sSfProBold != null ? sSfProBold : Typeface.DEFAULT_BOLD);
         boldPaint.setColor(Color.WHITE);
+        boldPaint.setTextSize(titleSize);
+        boldPaint.setTextAlign(Paint.Align.LEFT);
         boldPaint.clearShadowLayer();
 
         Paint medPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
@@ -307,6 +320,8 @@ public class PlaybackQualityOverlay {
         Paint regPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
         regPaint.setTypeface(sSfProRegular != null ? sSfProRegular : Typeface.DEFAULT);
         regPaint.setColor(Color.argb(190, 255, 255, 255));
+        regPaint.setTextSize(artistSize);
+        regPaint.setTextAlign(Paint.Align.LEFT);
         regPaint.clearShadowLayer();
 
         Paint progressBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -315,80 +330,52 @@ public class PlaybackQualityOverlay {
         Paint progressFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         progressFillPaint.setColor(Color.WHITE);
 
-        // 1. Right Action Buttons (Favorite Star & 3-Dots)
-        float btnRadius = screenWidth * 0.038f; // ~48px circle
-        float dotBtnCenterX = cardRight - btnRadius;
-        float dotBtnCenterY = (row1TitleY + row1ArtistY) / 2.0f - dpToPx(screenWidth, 3);
-        float starBtnCenterX = dotBtnCenterX - btnRadius * 2.5f;
-
-        Paint circlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        circlePaint.setColor(Color.argb(45, 255, 255, 255));
-        canvas.drawCircle(dotBtnCenterX, dotBtnCenterY, btnRadius, circlePaint);
-        canvas.drawCircle(starBtnCenterX, dotBtnCenterY, btnRadius, circlePaint);
-
-        // Draw 3 horizontal dots inside menu button
-        Paint dotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        dotPaint.setColor(Color.WHITE);
-        float dotSpacing = btnRadius * 0.44f;
-        float dotR = btnRadius * 0.12f;
-        canvas.drawCircle(dotBtnCenterX - dotSpacing, dotBtnCenterY, dotR, dotPaint);
-        canvas.drawCircle(dotBtnCenterX, dotBtnCenterY, dotR, dotPaint);
-        canvas.drawCircle(dotBtnCenterX + dotSpacing, dotBtnCenterY, dotR, dotPaint);
-
-        // Draw star outline inside favorite button
-        drawStarIcon(canvas, starBtnCenterX, dotBtnCenterY, btnRadius * 0.52f, dotPaint);
-
-        // Title and Artist Row
+        // 1. Title and Artist Row (Full width, no non-functional action buttons)
         String title = (snapshot != null && snapshot.title != null && !snapshot.title.isEmpty())
                 ? snapshot.title : (sTrackTitle != null ? sTrackTitle : "Unknown Track");
         String artist = (snapshot != null && snapshot.artist != null && !snapshot.artist.isEmpty())
                 ? snapshot.artist : (sTrackArtist != null ? sTrackArtist : "");
 
-        float titleSize = Math.round(screenWidth * 0.035f); // ~44px
-        boldPaint.setTextSize(titleSize);
-        boldPaint.setTextAlign(Paint.Align.LEFT);
-
-        float artistSize = Math.round(screenWidth * 0.024f); // ~30px
-        regPaint.setTextSize(artistSize);
-        regPaint.setTextAlign(Paint.Align.LEFT);
-
-        float maxTitleW = starBtnCenterX - btnRadius - cardLeft - dpToPx(screenWidth, 10);
+        float titleDrawX = cardLeft;
+        float maxTitleW = cardRight - cardLeft;
 
         // Draw [E] Explicit badge if song title indicates explicit or metadata flag
-        float titleDrawX = cardLeft;
         boolean isExplicit = (snapshot != null && snapshot.isExplicit)
                 || title.contains("Explicit") || title.startsWith("[E]");
         if (isExplicit) {
-            float badgeW = dpToPx(screenWidth, 17);
-            float badgeH = dpToPx(screenWidth, 15);
-            float badgeY = row1TitleY - badgeH + dpToPx(screenWidth, 2);
+            float badgeW = dpToPx(screenWidth, 23.8f);
+            float badgeH = dpToPx(screenWidth, 21.0f);
+            float badgeY = row1TitleY - badgeH + dpToPx(screenWidth, 3);
             RectF badgeRect = new RectF(titleDrawX, badgeY, titleDrawX + badgeW, badgeY + badgeH);
 
             Paint badgeBg = new Paint(Paint.ANTI_ALIAS_FLAG);
             badgeBg.setColor(Color.argb(70, 255, 255, 255));
-            canvas.drawRoundRect(badgeRect, dpToPx(screenWidth, 3), dpToPx(screenWidth, 3), badgeBg);
+            canvas.drawRoundRect(badgeRect, dpToPx(screenWidth, 4.2f), dpToPx(screenWidth, 4.2f), badgeBg);
 
             Paint badgeText = new Paint(Paint.ANTI_ALIAS_FLAG);
             badgeText.setTypeface(sSfProBold != null ? sSfProBold : Typeface.DEFAULT_BOLD);
-            badgeText.setTextSize(dpToPx(screenWidth, 11));
+            badgeText.setTextSize(dpToPx(screenWidth, 15.4f));
             badgeText.setColor(Color.WHITE);
             badgeText.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("E", badgeRect.centerX(), badgeRect.centerY() + dpToPx(screenWidth, 4), badgeText);
+            Paint.FontMetrics fm = badgeText.getFontMetrics();
+            float textCenterY = badgeRect.centerY() - (fm.ascent + fm.descent) / 2.0f;
+            canvas.drawText("E", badgeRect.centerX(), textCenterY, badgeText);
 
-            titleDrawX += badgeW + dpToPx(screenWidth, 6);
-            maxTitleW -= (badgeW + dpToPx(screenWidth, 6));
+            float badgeMargin = dpToPx(screenWidth, 8.4f);
+            titleDrawX += badgeW + badgeMargin;
+            maxTitleW = cardRight - titleDrawX;
         }
 
         String cleanDisplayTitle = title.replace("[E]", "").trim();
         String displayTitle = truncateText(cleanDisplayTitle, boldPaint, maxTitleW);
         canvas.drawText(displayTitle, titleDrawX, row1TitleY, boldPaint);
 
-        String displayArtist = truncateText(artist, regPaint, maxTitleW);
+        float maxArtistW = cardRight - cardLeft;
+        String displayArtist = truncateText(artist, regPaint, maxArtistW);
         canvas.drawText(displayArtist, cardLeft, row1ArtistY, regPaint);
 
         // 2. Synced Lyrics Row
-        if (lyricLine != null && !lyricLine.trim().isEmpty()) {
-            float lyricSize = Math.round(screenWidth * 0.025f); // ~31px
+        if (hasLyrics) {
             medPaint.setTextSize(lyricSize);
             medPaint.setTextAlign(Paint.Align.LEFT);
             medPaint.setLetterSpacing(0.012f);
@@ -411,7 +398,6 @@ public class PlaybackQualityOverlay {
         currentPos = Math.max(0, Math.min(duration, currentPos));
         float progress = duration > 0 ? (float) currentPos / (float) duration : 0.0f;
 
-        float barHeight = Math.round(screenWidth * 0.0055f); // ~7px
         float cornerR = barHeight / 2.0f;
         RectF trackRect = new RectF(cardLeft, row3ProgressY, cardRight, row3ProgressY + barHeight);
         canvas.drawRoundRect(trackRect, cornerR, cornerR, progressBgPaint);
@@ -423,7 +409,6 @@ public class PlaybackQualityOverlay {
         }
 
         // 4. Timestamps & Centered Audio Quality Info
-        float timeSize = Math.round(screenWidth * 0.0185f); // ~23px
         regPaint.setTextSize(timeSize);
         regPaint.setTextAlign(Paint.Align.LEFT);
         regPaint.setColor(Color.argb(175, 255, 255, 255));
@@ -450,25 +435,6 @@ public class PlaybackQualityOverlay {
             String qualDisplay = "≋  " + qualityText;
             canvas.drawText(qualDisplay, screenWidth * 0.50f, row4TimeY, qualPaint);
         }
-    }
-
-    private static void drawStarIcon(Canvas canvas, float cx, float cy, float r, Paint paint) {
-        Paint strokePaint = new Paint(paint);
-        strokePaint.setStyle(Paint.Style.STROKE);
-        strokePaint.setStrokeWidth(2.6f);
-        Path path = new Path();
-        double angle = -Math.PI / 2.0;
-        double step = Math.PI / 5.0;
-        for (int i = 0; i < 10; i++) {
-            float rad = (i % 2 == 0) ? r : r * 0.44f;
-            float x = (float) (cx + Math.cos(angle) * rad);
-            float y = (float) (cy + Math.sin(angle) * rad);
-            if (i == 0) path.moveTo(x, y);
-            else path.lineTo(x, y);
-            angle += step;
-        }
-        path.close();
-        canvas.drawPath(path, strokePaint);
     }
 
     private static String formatTime(long ms) {

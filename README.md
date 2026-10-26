@@ -72,12 +72,6 @@
 
 ## 2. ODialer Video Ringtone (`odialer-video-ringtone`)
 
-<div align="center">
-  <img src="docs/dialer_demo.png" width="45%" alt="ODialer Video Ringtone Preview"/>
-  &nbsp;&nbsp;
-  <img src="docs/dialer_live_call.png" width="45%" alt="Live Call Screen with Effects"/>
-</div>
-
 ### Highlights
 - **Per-Contact Video Ringtones Without Root**: Assign unique MP4 videos to individual callers. Unassigned callers seamlessly hear your default system audio ringtone.
 - **Pre-Ring CallScreening Interception**: Uses Android's `CallScreeningService` to intercept calls milliseconds before ringing starts, swaps `Settings.System.ringtone`, hands off to native ColorOS `com.android.incallui`, and restores your fallback audio ringtone upon hang-up.

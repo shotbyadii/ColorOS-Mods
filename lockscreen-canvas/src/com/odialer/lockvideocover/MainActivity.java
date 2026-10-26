@@ -339,14 +339,14 @@ public class MainActivity extends Activity {
         cardTextCol.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView cardTitle = new TextView(this);
-        cardTitle.setText("BitChord Now Playing Card & Lyrics");
+        cardTitle.setText("Synced Lyrics Preview");
         cardTitle.setTextColor(couiLabelPrimary);
         cardTitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
         cardTitle.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
         cardTextCol.addView(cardTitle);
 
         TextView cardSub = new TextView(this);
-        cardSub.setText("Displays progress bar, timestamps, synced lyrics, and track info above the bottom pill.");
+        cardSub.setText("Show one-line center-aligned synced lyrics preview right above audio quality details.");
         cardSub.setTextColor(couiLabelSecondary);
         cardSub.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         cardSub.setPadding(0, dp(2), 0, 0);
@@ -359,7 +359,7 @@ public class MainActivity extends Activity {
         cardToggle.setOnCheckedChangeListener((b, isChecked) -> {
             MediaPlaybackMonitorService.setNowPlayingCardEnabled(this, isChecked);
             LockscreenWallpaperService.requestOverlayRedraw();
-            Toast.makeText(this, isChecked ? "BitChord Now Playing card enabled" : "Minimal audio quality pill enabled", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, isChecked ? "Synced lyrics preview enabled" : "Audio quality details only", Toast.LENGTH_SHORT).show();
         });
         cardToggleRow.addView(cardToggle);
 

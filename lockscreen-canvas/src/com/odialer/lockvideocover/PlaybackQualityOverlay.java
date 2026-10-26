@@ -273,167 +273,49 @@ public class PlaybackQualityOverlay {
     }
 
     /**
-     * Renders the complete BitChord Now Playing Card (Title, Artist,
-     * Synced Lyrics, Progress Bar, Timestamps, and Audio Quality) with 0.4x larger
-     * elements, without non-functional buttons, aligned above the bottom media pill.
+     * Renders the minimal Now Playing overlay:
+     * Shows only the center-aligned one-line synced lyrics preview
+     * right above the center-aligned audio quality details.
      */
     public static void drawBitChordCard(Canvas canvas, int screenWidth, int screenHeight,
                                         MediaPlaybackMonitorService.PlaybackSnapshot snapshot,
                                         String lyricLine, String qualityText) {
         if (canvas == null || screenWidth <= 0 || screenHeight <= 0) return;
 
-        // Card horizontal margins
-        float cardLeft = screenWidth * 0.08f;
-        float cardRight = screenWidth * 0.92f;
-        float cardWidth = cardRight - cardLeft;
-
-        // Base typography sizes (scaled 1.4x for 0.4x larger elements)
-        float titleSize = Math.round(screenWidth * 0.049f);
-        float artistSize = Math.round(screenWidth * 0.0336f);
         float lyricSize = Math.round(screenWidth * 0.035f);
-        float timeSize = Math.round(screenWidth * 0.0259f);
-        float barHeight = Math.round(screenWidth * 0.0077f);
+        float qualitySize = Math.round(screenWidth * 0.0259f);
 
-        boolean hasLyrics = (lyricLine != null && !lyricLine.trim().isEmpty());
+        // Vertical positions directly above the bottom media pill
+        float rowQualityY = screenHeight * 0.864f;
+        float rowLyricsY = rowQualityY - qualitySize - dpToPx(screenWidth, 10);
 
-        // Vertical positions directly above the bottom pill
-        float row4TimeY = screenHeight * 0.866f;
-        float row3ProgressY = row4TimeY - timeSize * 1.35f - barHeight;
-        float row2LyricsY = row3ProgressY - dpToPx(screenWidth, 12);
-        float row1ArtistY = hasLyrics
-                ? (row2LyricsY - lyricSize - dpToPx(screenWidth, 10))
-                : (row3ProgressY - dpToPx(screenWidth, 16));
-        float row1TitleY = row1ArtistY - artistSize - dpToPx(screenWidth, 8);
+        // 1. One-Line Synced Lyrics Preview (Center Aligned, directly above Audio Quality)
+        if (lyricLine != null && !lyricLine.trim().isEmpty()) {
+            Paint lyricPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
+            lyricPaint.setTypeface(sSfProMedium != null ? sSfProMedium : Typeface.DEFAULT);
+            lyricPaint.setTextSize(lyricSize);
+            lyricPaint.setColor(Color.WHITE);
+            lyricPaint.setTextAlign(Paint.Align.CENTER);
+            lyricPaint.clearShadowLayer();
+            lyricPaint.setLetterSpacing(0.012f);
 
-        Paint boldPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
-        boldPaint.setTypeface(sSfProBold != null ? sSfProBold : Typeface.DEFAULT_BOLD);
-        boldPaint.setColor(Color.WHITE);
-        boldPaint.setTextSize(titleSize);
-        boldPaint.setTextAlign(Paint.Align.LEFT);
-        boldPaint.clearShadowLayer();
-
-        Paint medPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
-        medPaint.setTypeface(sSfProMedium != null ? sSfProMedium : Typeface.DEFAULT);
-        medPaint.setColor(Color.WHITE);
-        medPaint.clearShadowLayer();
-
-        Paint regPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
-        regPaint.setTypeface(sSfProRegular != null ? sSfProRegular : Typeface.DEFAULT);
-        regPaint.setColor(Color.argb(190, 255, 255, 255));
-        regPaint.setTextSize(artistSize);
-        regPaint.setTextAlign(Paint.Align.LEFT);
-        regPaint.clearShadowLayer();
-
-        Paint progressBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        progressBgPaint.setColor(Color.argb(65, 255, 255, 255));
-
-        Paint progressFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        progressFillPaint.setColor(Color.WHITE);
-
-        // 1. Title and Artist Row (Full width, no non-functional action buttons)
-        String title = (snapshot != null && snapshot.title != null && !snapshot.title.isEmpty())
-                ? snapshot.title : (sTrackTitle != null ? sTrackTitle : "Unknown Track");
-        String artist = (snapshot != null && snapshot.artist != null && !snapshot.artist.isEmpty())
-                ? snapshot.artist : (sTrackArtist != null ? sTrackArtist : "");
-
-        float titleDrawX = cardLeft;
-        float maxTitleW = cardRight - cardLeft;
-
-        // Draw [E] Explicit badge if song title indicates explicit or metadata flag
-        boolean isExplicit = (snapshot != null && snapshot.isExplicit)
-                || title.contains("Explicit") || title.startsWith("[E]");
-        if (isExplicit) {
-            float badgeW = dpToPx(screenWidth, 23.8f);
-            float badgeH = dpToPx(screenWidth, 21.0f);
-            float badgeY = row1TitleY - badgeH + dpToPx(screenWidth, 3);
-            RectF badgeRect = new RectF(titleDrawX, badgeY, titleDrawX + badgeW, badgeY + badgeH);
-
-            Paint badgeBg = new Paint(Paint.ANTI_ALIAS_FLAG);
-            badgeBg.setColor(Color.argb(70, 255, 255, 255));
-            canvas.drawRoundRect(badgeRect, dpToPx(screenWidth, 4.2f), dpToPx(screenWidth, 4.2f), badgeBg);
-
-            Paint badgeText = new Paint(Paint.ANTI_ALIAS_FLAG);
-            badgeText.setTypeface(sSfProBold != null ? sSfProBold : Typeface.DEFAULT_BOLD);
-            badgeText.setTextSize(dpToPx(screenWidth, 15.4f));
-            badgeText.setColor(Color.WHITE);
-            badgeText.setTextAlign(Paint.Align.CENTER);
-            Paint.FontMetrics fm = badgeText.getFontMetrics();
-            float textCenterY = badgeRect.centerY() - (fm.ascent + fm.descent) / 2.0f;
-            canvas.drawText("E", badgeRect.centerX(), textCenterY, badgeText);
-
-            float badgeMargin = dpToPx(screenWidth, 8.4f);
-            titleDrawX += badgeW + badgeMargin;
-            maxTitleW = cardRight - titleDrawX;
+            float maxLyricWidth = screenWidth * 0.88f;
+            String displayLyric = truncateText(lyricLine.trim(), lyricPaint, maxLyricWidth);
+            canvas.drawText(displayLyric, screenWidth * 0.50f, rowLyricsY, lyricPaint);
         }
 
-        String cleanDisplayTitle = title.replace("[E]", "").trim();
-        String displayTitle = truncateText(cleanDisplayTitle, boldPaint, maxTitleW);
-        canvas.drawText(displayTitle, titleDrawX, row1TitleY, boldPaint);
-
-        float maxArtistW = cardRight - cardLeft;
-        String displayArtist = truncateText(artist, regPaint, maxArtistW);
-        canvas.drawText(displayArtist, cardLeft, row1ArtistY, regPaint);
-
-        // 2. Synced Lyrics Row
-        if (hasLyrics) {
-            medPaint.setTextSize(lyricSize);
-            medPaint.setTextAlign(Paint.Align.LEFT);
-            medPaint.setLetterSpacing(0.012f);
-
-            String fullLyric = lyricLine.trim() + "  ›";
-            String displayLyric = truncateText(fullLyric, medPaint, cardWidth);
-            canvas.drawText(displayLyric, cardLeft, row2LyricsY, medPaint);
-        }
-
-        // 3. Progress Bar Row
-        long duration = (snapshot != null && snapshot.durationMs > 0) ? snapshot.durationMs : 180000L;
-        long currentPos = 0;
-        if (snapshot != null) {
-            currentPos = snapshot.positionMs;
-            if (snapshot.isPlaying && snapshot.lastPositionUpdateTime > 0) {
-                long elapsed = android.os.SystemClock.elapsedRealtime() - snapshot.lastPositionUpdateTime;
-                currentPos += (long) (elapsed * (snapshot.playbackSpeed > 0 ? snapshot.playbackSpeed : 1.0f));
-            }
-        }
-        currentPos = Math.max(0, Math.min(duration, currentPos));
-        float progress = duration > 0 ? (float) currentPos / (float) duration : 0.0f;
-
-        float cornerR = barHeight / 2.0f;
-        RectF trackRect = new RectF(cardLeft, row3ProgressY, cardRight, row3ProgressY + barHeight);
-        canvas.drawRoundRect(trackRect, cornerR, cornerR, progressBgPaint);
-
-        float fillRight = cardLeft + cardWidth * progress;
-        if (fillRight > cardLeft + 2.0f) {
-            RectF fillRect = new RectF(cardLeft, row3ProgressY, fillRight, row3ProgressY + barHeight);
-            canvas.drawRoundRect(fillRect, cornerR, cornerR, progressFillPaint);
-        }
-
-        // 4. Timestamps & Centered Audio Quality Info
-        regPaint.setTextSize(timeSize);
-        regPaint.setTextAlign(Paint.Align.LEFT);
-        regPaint.setColor(Color.argb(175, 255, 255, 255));
-
-        // Left elapsed timestamp
-        String elapsedStr = formatTime(currentPos);
-        canvas.drawText(elapsedStr, cardLeft, row4TimeY, regPaint);
-
-        // Right remaining timestamp
-        regPaint.setTextAlign(Paint.Align.RIGHT);
-        long remaining = Math.max(0, duration - currentPos);
-        String remainingStr = "-" + formatTime(remaining);
-        canvas.drawText(remainingStr, cardRight, row4TimeY, regPaint);
-
-        // Center: Audio Quality Info
+        // 2. Audio Quality Details (Center Aligned)
         if (qualityText != null && !qualityText.isEmpty()) {
             Paint qualPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
             qualPaint.setTypeface(sSfProMedium != null ? sSfProMedium : Typeface.DEFAULT);
-            qualPaint.setTextSize(timeSize);
+            qualPaint.setTextSize(qualitySize);
+            qualPaint.setColor(Color.argb(220, 255, 255, 255));
             qualPaint.setTextAlign(Paint.Align.CENTER);
-            qualPaint.setColor(Color.WHITE);
             qualPaint.clearShadowLayer();
+            qualPaint.setLetterSpacing(0.03f);
 
-            String qualDisplay = "≋  " + qualityText;
-            canvas.drawText(qualDisplay, screenWidth * 0.50f, row4TimeY, qualPaint);
+            String qualDisplay = qualityText.startsWith("≋") ? qualityText : ("≋  " + qualityText);
+            canvas.drawText(qualDisplay, screenWidth * 0.50f, rowQualityY, qualPaint);
         }
     }
 

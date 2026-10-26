@@ -767,7 +767,7 @@ public class GLVideoWallpaperRenderer implements SurfaceTexture.OnFrameAvailable
             mVideoAlpha = 1.0f;
         }
 
-        if (needsContinuousRender) {
+        if (needsContinuousRender || PlaybackQualityOverlay.isLyricAnimating()) {
             mGLHandler.postDelayed(this::renderCurrentState, 16);
         }
 
@@ -978,12 +978,29 @@ public class GLVideoWallpaperRenderer implements SurfaceTexture.OnFrameAvailable
 
         boolean isCardEnabled = MediaPlaybackMonitorService.isNowPlayingCardEnabled(mContext);
         long now = System.currentTimeMillis();
+
+        String lyric = null;
+        MediaPlaybackMonitorService.PlaybackSnapshot snapshot = null;
+        if (isCardEnabled) {
+            snapshot = MediaPlaybackMonitorService.getPlaybackSnapshot();
+            long currentPos = snapshot.positionMs;
+            if (snapshot.isPlaying && snapshot.lastPositionUpdateTime > 0) {
+                long elapsed = android.os.SystemClock.elapsedRealtime() - snapshot.lastPositionUpdateTime;
+                currentPos += (long) (elapsed * (snapshot.playbackSpeed > 0 ? snapshot.playbackSpeed : 1.0f));
+            }
+            lyric = SyncedLyricsManager.getCurrentLyric(currentPos);
+        }
+
+        boolean isAnimating = isCardEnabled && PlaybackQualityOverlay.isLyricAnimating();
+        boolean lyricChanged = isCardEnabled && PlaybackQualityOverlay.hasLyricChanged(lyric);
         boolean cardTick = isCardEnabled && (now - mLastCardDrawTime > 250);
 
-        // Recreate overlay bitmap if text changed, card tick elapsed, or bitmap not ready
+        // Recreate overlay bitmap if text changed, lyric changed, card tick elapsed, animation active, or bitmap not ready
         boolean needsRedraw = (mQualityBitmap == null || mQualityBitmap.getWidth() != mWidth ||
                                mQualityBitmap.getHeight() != mHeight ||
                                !currentQuality.equals(mLastQualityText) ||
+                               lyricChanged ||
+                               isAnimating ||
                                cardTick ||
                                mNeedRedrawQuality);
 
@@ -1002,14 +1019,6 @@ public class GLVideoWallpaperRenderer implements SurfaceTexture.OnFrameAvailable
             mLastCardDrawTime = now;
 
             if (isCardEnabled) {
-                MediaPlaybackMonitorService.PlaybackSnapshot snapshot =
-                        MediaPlaybackMonitorService.getPlaybackSnapshot();
-                long currentPos = snapshot.positionMs;
-                if (snapshot.isPlaying && snapshot.lastPositionUpdateTime > 0) {
-                    long elapsed = android.os.SystemClock.elapsedRealtime() - snapshot.lastPositionUpdateTime;
-                    currentPos += (long) (elapsed * (snapshot.playbackSpeed > 0 ? snapshot.playbackSpeed : 1.0f));
-                }
-                String lyric = SyncedLyricsManager.getCurrentLyric(currentPos);
                 PlaybackQualityOverlay.drawBitChordCard(mQualityCanvas, mWidth, mHeight, snapshot, lyric, currentQuality);
             } else {
                 // Draw quality text cleanly in light color without dynamic changing

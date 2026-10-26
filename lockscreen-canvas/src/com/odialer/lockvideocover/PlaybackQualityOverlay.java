@@ -48,6 +48,27 @@ public class PlaybackQualityOverlay {
     private static volatile boolean sHasUpgradedToFlac = false;
     private static volatile long sLastCheckTime = 0;
 
+    // Synced lyrics transition animation state
+    private static volatile String sCurrentLyric = "";
+    private static volatile String sPrevLyric = "";
+    private static volatile long sLyricAnimStartTime = 0;
+    private static final long LYRIC_ANIM_DURATION_MS = 380L;
+
+    public static boolean isLyricAnimating() {
+        return (System.currentTimeMillis() - sLyricAnimStartTime) < LYRIC_ANIM_DURATION_MS;
+    }
+
+    public static boolean hasLyricChanged(String newLyric) {
+        String clean = (newLyric != null) ? newLyric.trim() : "";
+        return !clean.equals(sCurrentLyric);
+    }
+
+    public static void resetLyricAnimation() {
+        sCurrentLyric = "";
+        sPrevLyric = "";
+        sLyricAnimStartTime = 0;
+    }
+
     public static void initFonts(Context context) {
         if (sSfProMedium == null) {
             try {
@@ -274,8 +295,8 @@ public class PlaybackQualityOverlay {
 
     /**
      * Renders the minimal Now Playing overlay:
-     * Shows only the center-aligned one-line synced lyrics preview
-     * right above the center-aligned audio quality details.
+     * - Center-aligned one-line synced lyrics preview with smooth crossfade and subtle glide animation
+     * - Directly above the center-aligned audio quality details
      */
     public static void drawBitChordCard(Canvas canvas, int screenWidth, int screenHeight,
                                         MediaPlaybackMonitorService.PlaybackSnapshot snapshot,
@@ -289,22 +310,56 @@ public class PlaybackQualityOverlay {
         float rowQualityY = screenHeight * 0.864f;
         float rowLyricsY = rowQualityY - qualitySize - dpToPx(screenWidth, 10);
 
-        // 1. One-Line Synced Lyrics Preview (Center Aligned, directly above Audio Quality)
-        if (lyricLine != null && !lyricLine.trim().isEmpty()) {
-            Paint lyricPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
-            lyricPaint.setTypeface(sSfProMedium != null ? sSfProMedium : Typeface.DEFAULT);
-            lyricPaint.setTextSize(lyricSize);
-            lyricPaint.setColor(Color.WHITE);
-            lyricPaint.setTextAlign(Paint.Align.CENTER);
-            lyricPaint.clearShadowLayer();
-            lyricPaint.setLetterSpacing(0.012f);
-
-            float maxLyricWidth = screenWidth * 0.88f;
-            String displayLyric = truncateText(lyricLine.trim(), lyricPaint, maxLyricWidth);
-            canvas.drawText(displayLyric, screenWidth * 0.50f, rowLyricsY, lyricPaint);
+        // Update lyric transition state
+        String rawLyric = (lyricLine != null) ? lyricLine.trim() : "";
+        if (!rawLyric.equals(sCurrentLyric)) {
+            if (!sCurrentLyric.isEmpty()) {
+                sPrevLyric = sCurrentLyric;
+            } else {
+                sPrevLyric = "";
+            }
+            sCurrentLyric = rawLyric;
+            sLyricAnimStartTime = System.currentTimeMillis();
         }
 
-        // 2. Audio Quality Details (Center Aligned)
+        long now = System.currentTimeMillis();
+        long elapsedAnim = now - sLyricAnimStartTime;
+        float t = Math.min(1.0f, Math.max(0.0f, (float) elapsedAnim / (float) LYRIC_ANIM_DURATION_MS));
+        // Apple-style smooth cubic ease-out curve
+        float ease = 1.0f - (float) Math.pow(1.0f - t, 3);
+        float slideDelta = dpToPx(screenWidth, 8.5f);
+        float maxLyricWidth = screenWidth * 0.88f;
+
+        Paint lyricPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
+        lyricPaint.setTypeface(sSfProMedium != null ? sSfProMedium : Typeface.DEFAULT);
+        lyricPaint.setTextSize(lyricSize);
+        lyricPaint.setTextAlign(Paint.Align.CENTER);
+        lyricPaint.clearShadowLayer();
+        lyricPaint.setLetterSpacing(0.012f);
+
+        // 1. Draw Outgoing Lyric (Fades out & smoothly glides upward)
+        if (t < 1.0f && !sPrevLyric.isEmpty()) {
+            int prevAlpha = Math.round((1.0f - ease) * 235);
+            if (prevAlpha > 0) {
+                float yPrev = rowLyricsY - (ease * slideDelta);
+                lyricPaint.setColor(Color.argb(prevAlpha, 255, 255, 255));
+                String displayPrev = truncateText(sPrevLyric, lyricPaint, maxLyricWidth);
+                canvas.drawText(displayPrev, screenWidth * 0.50f, yPrev, lyricPaint);
+            }
+        } else if (t >= 1.0f && !sPrevLyric.isEmpty()) {
+            sPrevLyric = "";
+        }
+
+        // 2. Draw Incoming Lyric (Fades in & smoothly rises into resting position)
+        if (!sCurrentLyric.isEmpty()) {
+            int currAlpha = (t < 1.0f) ? Math.round(ease * 255) : 255;
+            float yCurr = (t < 1.0f) ? (rowLyricsY + ((1.0f - ease) * slideDelta)) : rowLyricsY;
+            lyricPaint.setColor(Color.argb(currAlpha, 255, 255, 255));
+            String displayCurr = truncateText(sCurrentLyric, lyricPaint, maxLyricWidth);
+            canvas.drawText(displayCurr, screenWidth * 0.50f, yCurr, lyricPaint);
+        }
+
+        // 3. Audio Quality Details (Center Aligned)
         if (qualityText != null && !qualityText.isEmpty()) {
             Paint qualPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.SUBPIXEL_TEXT_FLAG);
             qualPaint.setTypeface(sSfProMedium != null ? sSfProMedium : Typeface.DEFAULT);

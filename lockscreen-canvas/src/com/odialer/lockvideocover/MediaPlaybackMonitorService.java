@@ -552,6 +552,7 @@ public class MediaPlaybackMonitorService extends NotificationListenerService {
 
             String activePkg = (mActiveController != null) ? mActiveController.getPackageName() : "com.music.bitchord";
             PlaybackQualityOverlay.notifyTrackStarted(cleanTitle, cleanArtist, activePkg);
+            PlaybackQualityOverlay.resetLyricAnimation();
             PlaybackQualityOverlay.checkStreamUpgrade(this);
 
             long duration = 0;
